@@ -5,9 +5,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans:  ['Geist', 'Helvetica Neue', 'system-ui', 'sans-serif'],
-        body:  ['Inter', 'Helvetica Neue', 'system-ui', 'sans-serif'],
-        mono:  ['Geist Mono', 'JetBrains Mono', 'monospace'],
+        sans: ['DM Sans', 'Helvetica Neue', 'system-ui', 'sans-serif'],
+        mono: ['Fira Code', 'Courier New', 'monospace'],
       },
     },
   },

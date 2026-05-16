@@ -8,12 +8,34 @@ const jsonLd = {
   "name": "NetTools",
   "description": "Professional network engineering tools: subnet calculators, VLSM planners, Cisco script generators",
   "url": Astro.url.origin,
-  "potentialAction": {
-    "@type": "SearchAction",
-    "target": `${Astro.url.origin}/subnetting/?q={search_term_string}`,
-    "query-input": "required name=search_term_string"
-  }
 };
+
+const tools = [
+  {
+    href: '/subnetting/',
+    name: 'Subnet Calculator',
+    description: 'Compute network address, broadcast, usable host range, and wildcard mask from any CIDR block.',
+    badge: null,
+  },
+  {
+    href: '/subnetting/vlsm/',
+    name: 'VLSM Planner',
+    description: 'Allocate subnets from a parent block using Variable Length Subnet Masking with utilization analysis.',
+    badge: null,
+  },
+  {
+    href: '/cisco-scripts/',
+    name: 'Cisco IOS Scripts',
+    description: 'Generate interface configurations, OSPF, static routes, and extended ACLs ready for console paste.',
+    badge: null,
+  },
+  {
+    href: '/topology/',
+    name: 'Topology Simulator',
+    description: 'Drag-and-drop network topology builder with automatic IP assignment and adjacency tables.',
+    badge: 'Beta',
+  },
+];
 ---
 
 <BaseLayout
@@ -22,36 +44,23 @@ const jsonLd = {
   jsonLd={jsonLd}
 >
 
-  <!-- Hero gradient backdrop -->
-  <div
-    aria-hidden="true"
-    style="
-      position: fixed;
-      inset: 0;
-      z-index: 0;
-      pointer-events: none;
-      background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(124, 58, 237, 0.15) 0%, transparent 60%);
-    "
-  ></div>
-
   <!-- Hero -->
-  <section class="max-w-6xl mx-auto px-4 pt-16 pb-8" style="position: relative; z-index: 1;">
+  <section class="max-w-6xl mx-auto px-4 pt-14 pb-10">
 
-    <p class="section-label scroll-entry" style="margin-bottom: 1.25rem;">
-      Free network engineering tools
+    <p class="section-label" style="margin-bottom: 1rem;">
+      Network engineering toolkit
     </p>
 
     <h1
       class="font-display scroll-entry"
       style="
-        font-size: clamp(2.75rem, 7vw, 5rem);
+        font-size: clamp(2.75rem, 5vw, 4.25rem);
         color: var(--text-1);
-        max-width: 16ch;
-        margin-bottom: 1.5rem;
-        animation-delay: 80ms;
+        max-width: 18ch;
+        margin-bottom: 1.25rem;
       "
     >
-      Network tools,<br />ready in seconds
+      Network tools for engineers who know what they need
     </h1>
 
     <p
@@ -59,295 +68,164 @@ const jsonLd = {
       style="
         font-size: 1.0625rem;
         color: var(--text-2);
-        max-width: 46ch;
+        max-width: 52ch;
         line-height: 1.65;
-        margin-bottom: 2.25rem;
-        animation-delay: 120ms;
+        margin-bottom: 2rem;
       "
     >
-      Professional subnet calculators, Cisco IOS script generators, and
-      topology simulators. No login. Runs entirely in your browser.
+      Subnet calculators, VLSM planners, Cisco script generators, and topology
+      tools. Free, no account required, runs entirely in your browser.
     </p>
 
-    <!-- Stat badges — staggered -->
-    <div class="scroll-entry" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 3.5rem; animation-delay: 160ms;">
-      <span class="stat-badge">
-        <span style="color: var(--success); font-size: 7px; line-height: 1;">●</span>
-        <span id="test-counter">0</span> unit tests
-      </span>
-      <span class="stat-badge">Built with Astro</span>
-      <span class="stat-badge">Open source</span>
-      <span class="stat-badge">Zero data collection</span>
+    <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 3.5rem;" class="scroll-entry">
+      <a href="/subnetting/" class="btn-primary">Open Subnet Calculator</a>
+      <a href="/articles/" class="btn-secondary">Read the guides</a>
     </div>
   </section>
 
+  <!-- Stats strip: one horizontal line, pipe separators, no pills -->
+  <div
+    class="scroll-entry"
+    style="
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background-color: var(--surface);
+    "
+  >
+    <div
+      class="max-w-6xl mx-auto px-4"
+      style="
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0;
+        padding: 0.875rem 0;
+      "
+    >
+      {[
+        '127 unit tests passing',
+        'Built with Astro',
+        'Open source on GitHub',
+        'Zero data collection',
+      ].map((stat, i) => (
+        <>
+          {i > 0 && (
+            <span aria-hidden="true" style="color: var(--border); padding: 0 1rem; font-size: 1rem; line-height: 1; flex-shrink: 0;">|</span>
+          )}
+          <span style="font-size: 0.8125rem; color: var(--text-3); font-weight: 500; white-space: nowrap;">{stat}</span>
+        </>
+      ))}
+    </div>
+  </div>
+
   <!-- Ad leaderboard -->
-  <div style="display: flex; justify-content: center; padding-bottom: 2rem; position: relative; z-index: 1;">
+  <div style="display: flex; justify-content: center; padding: 2rem 1rem;">
     <AdSlot slot="leaderboard" />
   </div>
 
-  <!-- Bento grid -->
-  <section class="max-w-6xl mx-auto px-4 pb-24 scroll-entry" style="position: relative; z-index: 1;">
-    <div class="bento-grid">
+  <!-- Tool list: table style, no cards -->
+  <section class="max-w-6xl mx-auto px-4 pb-20">
 
-      <!-- Large card: Subnet Calculator -->
-      <a
-        href="/subnetting/"
-        class="card-gradient-border block bento-main"
-        style="text-decoration: none; padding: 2rem; display: flex; flex-direction: column; justify-content: space-between; min-height: 420px;"
-        aria-label="Open Subnet Calculator"
-      >
-        <div>
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.75rem;">
-            <span class="section-label">Subnet Calculator</span>
-            <span
-              style="
-                font-family: 'Geist', sans-serif;
-                font-size: 0.625rem;
-                font-weight: 600;
-                letter-spacing: 0.08em;
-                text-transform: uppercase;
-                color: var(--accent-text);
-                background: var(--accent-subtle);
-                border: 1px solid rgba(124, 58, 237, 0.2);
-                padding: 0.25rem 0.625rem;
-                border-radius: 9999px;
-              "
-            >Free</span>
-          </div>
+    <p class="section-label" style="margin-bottom: 0; padding-bottom: 0.875rem; border-bottom: 1px solid var(--border);">
+      Tools
+    </p>
 
-          <h2
-            class="font-display"
-            style="font-size: clamp(1.5rem, 3vw, 1.875rem); color: var(--text-1); margin-bottom: 0.875rem; max-width: 22ch;"
+    <ul role="list" style="list-style: none; padding: 0; margin: 0;">
+      {tools.map(tool => (
+        <li>
+          <a
+            href={tool.href}
+            class="tool-row"
+            aria-label={`Open ${tool.name}`}
           >
-            IPv4 CIDR subnet calculator
-          </h2>
-
-          <p style="font-size: 0.9375rem; color: var(--text-2); line-height: 1.65; max-width: 44ch;">
-            Enter any CIDR block and instantly get network address, broadcast,
-            usable host range, wildcard mask, and binary representation.
-          </p>
-        </div>
-
-        <!-- Terminal preview -->
-        <div
-          style="
-            margin-top: 1.75rem;
-            background: #0d1117;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 10px;
-            padding: 1rem 1.25rem;
-            font-family: 'Geist Mono', 'JetBrains Mono', monospace;
-            font-size: 0.8125rem;
-            line-height: 2;
-          "
-        >
-          <p style="color: #555566; margin-bottom: 0.125rem;">$ subnet 192.168.1.0/24</p>
-          <p style="color: #a78bfa;">Network    192.168.1.0</p>
-          <p style="color: #f59e0b;">Broadcast  192.168.1.255</p>
-          <p style="color: #10b981;">Hosts      .1 — .254  (254 usable)</p>
-        </div>
-
-        <!-- CTA -->
-        <div class="card-cta" style="margin-top: 1.5rem; display: flex; align-items: center; gap: 0.5rem; color: var(--accent-text);">
-          <span style="font-family: 'Geist', sans-serif; font-size: 0.875rem; font-weight: 600; letter-spacing: -0.01em;">Open calculator</span>
-          <span class="cta-arrow" style="font-size: 1rem; display: inline-block; transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1);">→</span>
-        </div>
-      </a>
-
-      <!-- Right column: two stacked cards -->
-      <div class="bento-stack" style="display: flex; flex-direction: column; gap: 1rem;">
-
-        <!-- Cisco Scripts -->
-        <a
-          href="/cisco-scripts/"
-          class="card-shell block bento-side"
-          style="text-decoration: none; flex: 1;"
-          aria-label="Open Cisco IOS Script Generator"
-        >
-          <div class="card-core" style="padding: 1.625rem; display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
-            <div>
-              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.125rem;">
-                <span class="section-label">Cisco Scripts</span>
+            <span class="tool-name">{tool.name}</span>
+            <span class="tool-desc">{tool.description}</span>
+            <span class="tool-meta">
+              {tool.badge && (
                 <span
                   style="
-                    font-family: 'Geist', sans-serif;
-                    font-size: 0.625rem;
-                    font-weight: 600;
-                    letter-spacing: 0.08em;
-                    text-transform: uppercase;
-                    color: var(--accent-text);
-                    background: var(--accent-subtle);
-                    border: 1px solid rgba(124, 58, 237, 0.2);
-                    padding: 0.25rem 0.625rem;
-                    border-radius: 9999px;
-                  "
-                >Free</span>
-              </div>
-              <h2 style="font-family: 'Geist', sans-serif; font-size: 1.0625rem; font-weight: 700; color: var(--text-1); margin-bottom: 0.5rem; letter-spacing: -0.03em;">
-                IOS Script Generator
-              </h2>
-              <!-- Terminal snippet -->
-              <div
-                style="
-                  margin-top: 0.875rem;
-                  background: #0d1117;
-                  border: 1px solid rgba(255, 255, 255, 0.07);
-                  border-radius: 8px;
-                  padding: 0.625rem 0.875rem;
-                  font-family: 'Geist Mono', monospace;
-                  font-size: 0.6875rem;
-                  line-height: 1.7;
-                  color: #8b8b9e;
-                "
-              >
-                <span style="color: #a78bfa;">interface</span> GigabitEthernet0/0<br />
-                <span style="color: #10b981;">ip address</span> 192.168.1.1 255.255.255.0
-              </div>
-            </div>
-            <div class="card-cta" style="margin-top: 1rem; display: flex; align-items: center; gap: 0.375rem; color: var(--accent-text);">
-              <span style="font-family: 'Geist', sans-serif; font-size: 0.8125rem; font-weight: 600; letter-spacing: -0.01em;">Generate script</span>
-              <span class="cta-arrow" style="display: inline-block; transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1);">→</span>
-            </div>
-          </div>
-        </a>
-
-        <!-- Topology Simulator -->
-        <a
-          href="/topology/"
-          class="card-shell block bento-side"
-          style="text-decoration: none; flex: 1;"
-          aria-label="Open Topology Simulator"
-        >
-          <div class="card-core" style="padding: 1.625rem; display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
-            <div>
-              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.125rem;">
-                <span class="section-label">Topology</span>
-                <span
-                  style="
-                    font-family: 'Geist', sans-serif;
-                    font-size: 0.625rem;
-                    font-weight: 600;
-                    letter-spacing: 0.08em;
+                    font-size: 0.6875rem;
+                    font-weight: 700;
+                    letter-spacing: 0.06em;
                     text-transform: uppercase;
                     color: var(--warning);
-                    background: var(--warning-subtle);
-                    padding: 0.25rem 0.625rem;
-                    border-radius: 9999px;
+                    background-color: var(--warning-subtle);
+                    padding: 0.2rem 0.5rem;
+                    border-radius: 3px;
+                    white-space: nowrap;
                   "
-                >Beta</span>
-              </div>
-              <h2 style="font-family: 'Geist', sans-serif; font-size: 1.0625rem; font-weight: 700; color: var(--text-1); margin-bottom: 0.5rem; letter-spacing: -0.03em;">
-                Topology Simulator
-              </h2>
-              <p style="font-size: 0.8125rem; color: var(--text-2); line-height: 1.6;">
-                Drag-and-drop network topology builder with automatic IP assignment.
-              </p>
-            </div>
-            <div class="card-cta" style="margin-top: 1rem; display: flex; align-items: center; gap: 0.375rem; color: var(--accent-text);">
-              <span style="font-family: 'Geist', sans-serif; font-size: 0.8125rem; font-weight: 600; letter-spacing: -0.01em;">Build topology</span>
-              <span class="cta-arrow" style="display: inline-block; transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1);">→</span>
-            </div>
-          </div>
-        </a>
-      </div>
-    </div>
-  </section>
-
-  <!-- Also available — elevated surface -->
-  <section
-    class="scroll-entry"
-    style="
-      border-top: 1px solid var(--border-subtle);
-      background: var(--surface-elevated);
-      padding: 4rem 0;
-      position: relative;
-      z-index: 1;
-    "
-  >
-    <div class="max-w-6xl mx-auto px-4">
-      <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2rem;">
-        <div>
-          <p class="section-label" style="margin-bottom: 0.875rem;">Also available</p>
-          <h2
-            class="font-display"
-            style="font-size: clamp(1.375rem, 2.5vw, 1.75rem); color: var(--text-1); margin-bottom: 0.625rem;"
-          >
-            VLSM Planner + Articles
-          </h2>
-          <p style="font-size: 0.9375rem; color: var(--text-2); max-width: 46ch; line-height: 1.65;">
-            Variable Length Subnet Masking allocator and curated networking guides,
-            cheat sheets, and Cisco configuration examples.
-          </p>
-        </div>
-        <div style="display: flex; flex-wrap: wrap; gap: 0.625rem;">
-          <a href="/subnetting/vlsm/" class="btn-secondary">VLSM Planner →</a>
-          <a href="/articles/" class="btn-secondary">Read articles →</a>
-        </div>
-      </div>
-    </div>
+                >{tool.badge}</span>
+              )}
+              <span class="tool-arrow">→</span>
+            </span>
+          </a>
+        </li>
+      ))}
+    </ul>
   </section>
 
 </BaseLayout>
 
 <style>
-  /* Bento grid: 2/3 + 1/3 on desktop */
-  .bento-grid {
+  .tool-row {
     display: grid;
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-  @media (min-width: 768px) {
-    .bento-grid {
-      grid-template-columns: 2fr 1fr;
-    }
-    .bento-stack {
-      min-height: 420px;
-    }
+    grid-template-columns: 200px 1fr auto;
+    align-items: center;
+    gap: 2rem;
+    padding: 1.25rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    text-decoration: none;
+    border-radius: 4px;
+    transition: background-color 150ms ease;
+    margin: 0 -0.75rem;
   }
 
-  /* CTA arrow nudge on hover */
-  a:hover .cta-arrow {
+  .tool-row:hover {
+    background-color: var(--accent-subtle);
+  }
+
+  .tool-name {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 700;
+    font-size: 0.9375rem;
+    color: var(--text-1);
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+  }
+
+  .tool-desc {
+    font-size: 0.875rem;
+    color: var(--text-2);
+    line-height: 1.55;
+  }
+
+  .tool-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    flex-shrink: 0;
+  }
+
+  .tool-arrow {
+    font-size: 1rem;
+    color: var(--accent);
+    display: inline-block;
+    transition: transform 150ms ease;
+  }
+
+  .tool-row:hover .tool-arrow {
     transform: translateX(4px);
   }
 
-  /* Staggered scroll-entry delays for hero items */
-  .scroll-entry:nth-child(1) { transition-delay: 0ms; }
-  .scroll-entry:nth-child(2) { transition-delay: 60ms; }
-  .scroll-entry:nth-child(3) { transition-delay: 120ms; }
-  .scroll-entry:nth-child(4) { transition-delay: 180ms; }
-</style>
-
-<!-- Counter animation + viewport trigger -->
-<script>
-  const counter = document.getElementById('test-counter');
-  if (counter) {
-    const target = 127;
-    const duration = 1000;
-
-    const animateCounter = () => {
-      let startTime: number | null = null;
-      const step = (timestamp: number) => {
-        if (!startTime) startTime = timestamp;
-        const elapsed = timestamp - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        // ease-out cubic
-        const eased = 1 - Math.pow(1 - progress, 3);
-        counter!.textContent = String(Math.round(eased * target));
-        if (progress < 1) requestAnimationFrame(step);
-      };
-      requestAnimationFrame(step);
-    };
-
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          animateCounter();
-          io.disconnect();
-        }
-      },
-      { threshold: 0.5 }
-    );
-    io.observe(counter);
+  @media (max-width: 640px) {
+    .tool-row {
+      grid-template-columns: 1fr;
+      gap: 0.375rem;
+      padding: 1rem 0.5rem;
+      margin: 0 -0.5rem;
+    }
+    .tool-meta {
+      justify-content: flex-end;
+    }
   }
-</script>
+</style>

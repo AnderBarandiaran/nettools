@@ -27,71 +27,87 @@ const jsonLd = {
   description="Free IPv4 subnet calculator. Enter any CIDR notation to instantly get network address, broadcast, usable host range, wildcard mask, and subnet class."
   jsonLd={jsonLd}
 >
+
   <!-- Breadcrumb -->
   <nav class="max-w-6xl mx-auto px-4 pt-6 pb-2" aria-label="Breadcrumb">
-    <ol class="flex items-center gap-2 text-sm text-[#868e96]">
-      <li><a href="/" class="hover:text-brand-600">Home</a></li>
+    <ol style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8125rem; color: var(--text-3); list-style: none; margin: 0; padding: 0;">
+      <li><a href="/" style="color: var(--text-3); text-decoration: none;" onmouseover="this.style.color='var(--text-1)'" onmouseout="this.style.color='var(--text-3)'">Home</a></li>
       <li aria-hidden="true">/</li>
-      <li class="text-[#1a1b1e] font-medium">Subnet Calculator</li>
+      <li style="color: var(--text-2); font-weight: 500;">Subnet Calculator</li>
     </ol>
   </nav>
 
-  <!-- Header de la herramienta -->
-  <header class="max-w-6xl mx-auto px-4 pt-4 pb-8">
-    <h1 class="text-3xl sm:text-4xl font-bold text-[#1a1b1e] mb-3">
+  <header class="max-w-6xl mx-auto px-4 pt-4 pb-8" style="border-bottom: 1px solid var(--border); margin-bottom: 2rem;">
+    <h1
+      class="font-display"
+      style="font-size: clamp(1.75rem, 3vw, 2.5rem); color: var(--text-1); margin-bottom: 0.625rem;"
+    >
       IPv4 Subnet Calculator
     </h1>
-    <p class="text-[#495057] text-lg max-w-2xl">
-      Enter a network address in CIDR notation or with a subnet mask.
-      Instantly compute all subnet parameters including usable host range,
-      wildcard mask, and binary representation.
+    <p style="font-size: 1rem; color: var(--text-2); max-width: 56ch; line-height: 1.65;">
+      Enter a network address in CIDR notation or with a dotted-decimal subnet mask.
+      All parameters computed instantly in your browser.
     </p>
   </header>
 
-  <!-- Ad leaderboard -->
   <div class="flex justify-center pb-6">
     <AdSlot slot="leaderboard" />
   </div>
 
-  <!-- Calculadora interactiva (React Island) -->
   <section class="max-w-6xl mx-auto px-4 pb-8">
     <SubnetCalculator client:load />
   </section>
 
-  <!-- Ad rectangle -->
   <div class="flex justify-center pb-8">
     <AdSlot slot="rectangle" />
   </div>
 
-  <!-- Contenido SEO editorial -->
-  <article class="max-w-3xl mx-auto px-4 pb-16 prose prose-slate">
-    <h2>How to use this subnet calculator</h2>
-    <p>Enter any IPv4 address with a CIDR prefix (e.g., <code>192.168.1.0/24</code>)
-    or with a dotted-decimal subnet mask (e.g., <code>10.0.0.0 255.0.0.0</code>).
-    The calculator instantly returns all subnet parameters.</p>
+  <!-- SEO content -->
+  <article class="max-w-3xl mx-auto px-4 pb-16">
 
-    <h2>Understanding CIDR notation</h2>
-    <p>CIDR (Classless Inter-Domain Routing) notation combines the network address
-    with the prefix length using a slash. A <code>/24</code> prefix means the first
-    24 bits are the network portion, leaving 8 bits for host addresses —
-    yielding 254 usable hosts.</p>
+    <h2 style="font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 1.25rem; color: var(--text-1); letter-spacing: -0.02em; margin-bottom: 0.75rem; margin-top: 2rem;">
+      How to use this subnet calculator
+    </h2>
+    <p style="font-size: 0.9375rem; color: var(--text-2); line-height: 1.7; margin-bottom: 1.25rem;">
+      Enter any IPv4 address with a CIDR prefix (e.g., <code style="font-family: 'Fira Code', monospace; font-size: 0.875em; background: var(--surface-secondary); padding: 0.1em 0.35em; border-radius: 3px; color: var(--accent-text);">192.168.1.0/24</code>)
+      or with a dotted-decimal subnet mask (e.g., <code style="font-family: 'Fira Code', monospace; font-size: 0.875em; background: var(--surface-secondary); padding: 0.1em 0.35em; border-radius: 3px; color: var(--accent-text);">10.0.0.0 255.0.0.0</code>).
+    </p>
 
-    <h2>Common subnet masks reference</h2>
-    <table>
-      <thead><tr><th>CIDR</th><th>Subnet mask</th><th>Usable hosts</th></tr></thead>
-      <tbody>
-        <tr><td>/30</td><td>255.255.255.252</td><td>2</td></tr>
-        <tr><td>/29</td><td>255.255.255.248</td><td>6</td></tr>
-        <tr><td>/28</td><td>255.255.255.240</td><td>14</td></tr>
-        <tr><td>/27</td><td>255.255.255.224</td><td>30</td></tr>
-        <tr><td>/26</td><td>255.255.255.192</td><td>62</td></tr>
-        <tr><td>/25</td><td>255.255.255.128</td><td>126</td></tr>
-        <tr><td>/24</td><td>255.255.255.0</td><td>254</td></tr>
-        <tr><td>/23</td><td>255.255.254.0</td><td>510</td></tr>
-        <tr><td>/22</td><td>255.255.252.0</td><td>1022</td></tr>
-        <tr><td>/16</td><td>255.255.0.0</td><td>65534</td></tr>
-        <tr><td>/8</td><td>255.0.0.0</td><td>16777214</td></tr>
-      </tbody>
-    </table>
+    <h2 style="font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 1.25rem; color: var(--text-1); letter-spacing: -0.02em; margin-bottom: 0.75rem; margin-top: 2rem;">
+      Common subnet masks reference
+    </h2>
+    <div style="overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem; border: 1px solid var(--border);">
+        <thead>
+          <tr style="background-color: var(--canvas);">
+            <th style="padding: 0.625rem 0.875rem; text-align: left; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); border-bottom: 1px solid var(--border);">CIDR</th>
+            <th style="padding: 0.625rem 0.875rem; text-align: left; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); border-bottom: 1px solid var(--border);">Subnet mask</th>
+            <th style="padding: 0.625rem 0.875rem; text-align: right; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); border-bottom: 1px solid var(--border);">Usable hosts</th>
+          </tr>
+        </thead>
+        <tbody>
+          {[
+            ['/30', '255.255.255.252', '2'],
+            ['/29', '255.255.255.248', '6'],
+            ['/28', '255.255.255.240', '14'],
+            ['/27', '255.255.255.224', '30'],
+            ['/26', '255.255.255.192', '62'],
+            ['/25', '255.255.255.128', '126'],
+            ['/24', '255.255.255.0', '254'],
+            ['/23', '255.255.254.0', '510'],
+            ['/22', '255.255.252.0', '1,022'],
+            ['/16', '255.255.0.0', '65,534'],
+            ['/8',  '255.0.0.0', '16,777,214'],
+          ].map(([cidr, mask, hosts], i) => (
+            <tr style={{ backgroundColor: i % 2 === 1 ? 'var(--canvas)' : 'var(--surface)' }}>
+              <td style="padding: 0.5rem 0.875rem; font-family: 'Fira Code', monospace; font-size: 0.875rem; color: var(--accent-text); border-bottom: 1px solid var(--border-subtle);">{cidr}</td>
+              <td style="padding: 0.5rem 0.875rem; font-family: 'Fira Code', monospace; font-size: 0.875rem; color: var(--text-1); border-bottom: 1px solid var(--border-subtle);">{mask}</td>
+              <td style="padding: 0.5rem 0.875rem; font-family: 'Fira Code', monospace; font-size: 0.875rem; color: var(--text-2); text-align: right; border-bottom: 1px solid var(--border-subtle);">{hosts}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+
   </article>
 </BaseLayout>
