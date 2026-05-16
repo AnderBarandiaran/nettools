@@ -2,7 +2,7 @@
   "name": "nettools",
   "type": "module",
   "version": "0.0.1",
-  "packageManager": "pnpm@9.15.9",
+  "packageManager": "pnpm@9",
   "engines": {
     "node": ">=22.12.0"
   },
