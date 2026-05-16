@@ -1,0 +1,124 @@
+---
+import BaseLayout from '../../components/layout/BaseLayout.astro';
+import AdSlot from '../../components/ads/AdSlot.astro';
+import CiscoScriptGen from '../../components/islands/CiscoScriptGen';
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Cisco IOS Script Generator",
+  "applicationCategory": "NetworkingApplication",
+  "operatingSystem": "Web",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "description": "Free Cisco IOS configuration script generator. Create interface configs, OSPF setups, extended ACLs, static routes, VLAN configs, and DHCP pools ready to paste into the console.",
+  "featureList": [
+    "Layer 3 interface configuration",
+    "OSPF routing process with multi-area support",
+    "Extended ACL (numbered and named)",
+    "Static and floating static routes",
+    "VLAN database and SVI configuration",
+    "DHCP pool with excluded address ranges"
+  ]
+};
+---
+
+<BaseLayout
+  title="Cisco IOS Script Generator — Interface, OSPF, ACL Config"
+  description="Free Cisco IOS configuration script generator. Create interface configs, OSPF setups, extended ACLs, static routes, VLAN configs, and DHCP pools ready to paste into the console."
+  jsonLd={jsonLd}
+>
+  <nav class="max-w-6xl mx-auto px-4 pt-6 pb-2" aria-label="Breadcrumb">
+    <ol class="flex items-center gap-2 text-sm text-[#868e96]">
+      <li><a href="/" class="hover:text-brand-600">Home</a></li>
+      <li aria-hidden="true">/</li>
+      <li class="text-[#1a1b1e] font-medium">Cisco Scripts</li>
+    </ol>
+  </nav>
+
+  <header class="max-w-6xl mx-auto px-4 pt-4 pb-8">
+    <h1 class="text-3xl sm:text-4xl font-bold text-[#1a1b1e] mb-3">
+      Cisco IOS Script Generator
+    </h1>
+    <p class="text-[#495057] text-lg max-w-2xl">
+      Generate syntactically correct Cisco IOS 15.x configuration scripts ready
+      to paste into a console session. Choose a script type, fill in the
+      parameters, and copy the output directly into enable mode.
+    </p>
+  </header>
+
+  <div class="flex justify-center pb-6">
+    <AdSlot slot="leaderboard" />
+  </div>
+
+  <section class="max-w-6xl mx-auto px-4 pb-8">
+    <CiscoScriptGen client:load />
+  </section>
+
+  <div class="flex justify-center pb-8">
+    <AdSlot slot="rectangle" />
+  </div>
+
+  <article class="max-w-3xl mx-auto px-4 pb-16 prose prose-slate">
+    <h2>Supported script types</h2>
+    <p>The generator supports the most common day-to-day IOS configuration tasks:</p>
+    <ul>
+      <li><strong>Interface</strong> — Layer 3 IP address, description, duplex/speed, shutdown state.</li>
+      <li><strong>OSPF</strong> — Single or multi-area OSPF process with router-ID, network statements, passive interfaces, and default route redistribution.</li>
+      <li><strong>Static routes</strong> — Standard and floating static routes with optional administrative distance for route redundancy.</li>
+      <li><strong>Extended ACL</strong> — Numbered (100–199) or named extended access lists with per-rule remarks and optional interface binding.</li>
+    </ul>
+
+    <h2>How to apply a generated script</h2>
+    <p>All scripts start with <code>configure terminal</code> and end with <code>end</code>,
+    so they are designed to be pasted directly at the router or switch privileged exec prompt (<code>Router#</code>).
+    After pasting, verify with <code>show running-config</code> and save with
+    <code>copy running-config startup-config</code> (or <code>wr</code>).</p>
+
+    <h2>Essential IOS verification commands</h2>
+    <p>After applying a configuration, use these commands to verify the result:</p>
+    <table>
+      <thead>
+        <tr><th>Command</th><th>What it shows</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>show ip route</code></td><td>Full IPv4 routing table with protocol codes</td></tr>
+        <tr><td><code>show ip route summary</code></td><td>Route count per protocol — fast sanity check</td></tr>
+        <tr><td><code>show ip ospf neighbor</code></td><td>OSPF adjacency state (FULL = converged)</td></tr>
+        <tr><td><code>show ip ospf database</code></td><td>LSDB — verify LSAs flooded across the area</td></tr>
+        <tr><td><code>show interfaces</code></td><td>Full interface stats: errors, drops, MTU, encap</td></tr>
+        <tr><td><code>show ip interface brief</code></td><td>One-line status per interface — line/protocol state</td></tr>
+        <tr><td><code>show running-config</code></td><td>Active configuration in RAM</td></tr>
+        <tr><td><code>show startup-config</code></td><td>Saved configuration in NVRAM</td></tr>
+        <tr><td><code>show access-lists</code></td><td>All ACLs with hit counters per rule</td></tr>
+        <tr><td><code>show ip access-lists</code></td><td>IP ACLs only — same hit counters</td></tr>
+        <tr><td><code>show vlan brief</code></td><td>VLAN database: ID, name, active ports</td></tr>
+        <tr><td><code>show ip dhcp binding</code></td><td>Active DHCP leases: MAC → IP mapping</td></tr>
+        <tr><td><code>show ip dhcp pool</code></td><td>Pool utilisation: addresses available vs. in use</td></tr>
+        <tr><td><code>show version</code></td><td>IOS version, uptime, hardware model, license</td></tr>
+        <tr><td><code>ping <em>target</em></code></td><td>ICMP echo test — 5 packets by default</td></tr>
+        <tr><td><code>traceroute <em>target</em></code></td><td>Hop-by-hop path with RTT per hop</td></tr>
+        <tr><td><code>debug ip ospf events</code></td><td>Real-time OSPF event log (use with care in prod)</td></tr>
+        <tr><td><code>no debug all</code></td><td>Disable all active debug output immediately</td></tr>
+        <tr><td><code>copy running-config startup-config</code></td><td>Persist config to NVRAM (alias: <code>wr</code>)</td></tr>
+      </tbody>
+    </table>
+
+    <h2>OSPF area design quick reference</h2>
+    <p>OSPF divides the network into areas to limit LSA flooding. Area 0 (backbone)
+    is required — all other areas must connect to it directly or via a virtual link.
+    Common design patterns:</p>
+    <ul>
+      <li><strong>Single-area OSPF</strong> — everything in area 0. Simplest; fine for small networks (&lt;50 routers).</li>
+      <li><strong>Stub area</strong> — blocks external LSAs (Type 5). Add <code>area N stub</code> to reduce LSDB size on branch routers.</li>
+      <li><strong>NSSA</strong> — allows redistributed routes while blocking other externals. Add <code>area N nssa</code>.</li>
+    </ul>
+
+    <h2>Extended ACL placement rules</h2>
+    <p>Place extended ACLs as close to the <em>source</em> as possible to drop unwanted
+    traffic early. Named ACLs (recommended over numbered) support in-place editing
+    with <code>no <em>sequence-number</em></code> and resequencing with
+    <code>ip access-list resequence <em>NAME</em> 10 10</code>.
+    Always end with an explicit <code>deny ip any any</code> with a remark so the
+    implicit deny is visible in <code>show access-lists</code> hit counters.</p>
+  </article>
+</BaseLayout>

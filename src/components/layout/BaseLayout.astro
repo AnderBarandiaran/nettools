@@ -1,0 +1,89 @@
+---
+import '../../styles/global.css';
+
+export interface Props {
+  title: string;
+  description: string;
+  canonicalUrl?: string;
+  ogType?: 'website' | 'article';
+  jsonLd?: Record<string, unknown>;
+  noindex?: boolean;
+}
+
+const {
+  title,
+  description,
+  canonicalUrl = Astro.url.href,
+  ogType = 'website',
+  jsonLd,
+  noindex = false,
+} = Astro.props;
+
+const siteName = 'NetTools — Network Engineering Toolkit';
+const fullTitle = title === siteName ? siteName : `${title} | NetTools`;
+const ogImage = new URL('/og-default.png', Astro.url.origin).href;
+---
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#3b5bdb" />
+
+  <!-- SEO primario -->
+  <title>{fullTitle}</title>
+  <meta name="description" content={description} />
+  <link rel="canonical" href={canonicalUrl} />
+  {noindex && <meta name="robots" content="noindex,nofollow" />}
+
+  <!-- Open Graph -->
+  <meta property="og:type" content={ogType} />
+  <meta property="og:title" content={fullTitle} />
+  <meta property="og:description" content={description} />
+  <meta property="og:url" content={canonicalUrl} />
+  <meta property="og:site_name" content={siteName} />
+  <meta property="og:image" content={ogImage} />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content={fullTitle} />
+  <meta name="twitter:description" content={description} />
+  <meta name="twitter:image" content={ogImage} />
+
+  <!-- JSON-LD estructurado -->
+  {jsonLd && (
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+  )}
+
+  <!-- Preconnect fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <!-- Favicon placeholder -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+</head>
+<body>
+  <header class="border-b border-surface-200 bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+    <nav class="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
+      <a href="/" class="font-bold text-brand-700 text-lg tracking-tight">
+        NetTools
+      </a>
+      <ul class="flex items-center gap-6 text-sm font-medium text-[#495057]">
+        <li><a href="/subnetting/" class="hover:text-brand-600 transition-colors">Subnet Calc</a></li>
+        <li><a href="/subnetting/vlsm/" class="hover:text-brand-600 transition-colors">VLSM</a></li>
+        <li><a href="/cisco-scripts/" class="hover:text-brand-600 transition-colors">Cisco Scripts</a></li>
+        <li><a href="/topology/" class="hover:text-brand-600 transition-colors">Topology</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <slot />
+  </main>
+
+  <footer class="border-t border-surface-200 mt-16 py-8 text-center text-sm text-[#868e96]">
+    <p>© {new Date().getFullYear()} NetTools. Built for network engineers.</p>
+  </footer>
+</body>
+</html>

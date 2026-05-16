@@ -1,0 +1,97 @@
+---
+import BaseLayout from '../../components/layout/BaseLayout.astro';
+import AdSlot from '../../components/ads/AdSlot.astro';
+import SubnetCalculator from '../../components/islands/SubnetCalculator';
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Subnet Calculator",
+  "applicationCategory": "NetworkingApplication",
+  "operatingSystem": "Web",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "description": "Free IPv4 subnet calculator with CIDR notation, wildcard masks, broadcast address, and usable host range computation.",
+  "featureList": [
+    "CIDR notation support",
+    "Wildcard mask generation",
+    "Broadcast address calculation",
+    "Usable host range display",
+    "Network class identification",
+    "RFC 1918 private range detection"
+  ]
+};
+---
+
+<BaseLayout
+  title="Subnet Calculator — IPv4 CIDR Tool"
+  description="Free IPv4 subnet calculator. Enter any CIDR notation to instantly get network address, broadcast, usable host range, wildcard mask, and subnet class."
+  jsonLd={jsonLd}
+>
+  <!-- Breadcrumb -->
+  <nav class="max-w-6xl mx-auto px-4 pt-6 pb-2" aria-label="Breadcrumb">
+    <ol class="flex items-center gap-2 text-sm text-[#868e96]">
+      <li><a href="/" class="hover:text-brand-600">Home</a></li>
+      <li aria-hidden="true">/</li>
+      <li class="text-[#1a1b1e] font-medium">Subnet Calculator</li>
+    </ol>
+  </nav>
+
+  <!-- Header de la herramienta -->
+  <header class="max-w-6xl mx-auto px-4 pt-4 pb-8">
+    <h1 class="text-3xl sm:text-4xl font-bold text-[#1a1b1e] mb-3">
+      IPv4 Subnet Calculator
+    </h1>
+    <p class="text-[#495057] text-lg max-w-2xl">
+      Enter a network address in CIDR notation or with a subnet mask.
+      Instantly compute all subnet parameters including usable host range,
+      wildcard mask, and binary representation.
+    </p>
+  </header>
+
+  <!-- Ad leaderboard -->
+  <div class="flex justify-center pb-6">
+    <AdSlot slot="leaderboard" />
+  </div>
+
+  <!-- Calculadora interactiva (React Island) -->
+  <section class="max-w-6xl mx-auto px-4 pb-8">
+    <SubnetCalculator client:load />
+  </section>
+
+  <!-- Ad rectangle -->
+  <div class="flex justify-center pb-8">
+    <AdSlot slot="rectangle" />
+  </div>
+
+  <!-- Contenido SEO editorial -->
+  <article class="max-w-3xl mx-auto px-4 pb-16 prose prose-slate">
+    <h2>How to use this subnet calculator</h2>
+    <p>Enter any IPv4 address with a CIDR prefix (e.g., <code>192.168.1.0/24</code>)
+    or with a dotted-decimal subnet mask (e.g., <code>10.0.0.0 255.0.0.0</code>).
+    The calculator instantly returns all subnet parameters.</p>
+
+    <h2>Understanding CIDR notation</h2>
+    <p>CIDR (Classless Inter-Domain Routing) notation combines the network address
+    with the prefix length using a slash. A <code>/24</code> prefix means the first
+    24 bits are the network portion, leaving 8 bits for host addresses —
+    yielding 254 usable hosts.</p>
+
+    <h2>Common subnet masks reference</h2>
+    <table>
+      <thead><tr><th>CIDR</th><th>Subnet mask</th><th>Usable hosts</th></tr></thead>
+      <tbody>
+        <tr><td>/30</td><td>255.255.255.252</td><td>2</td></tr>
+        <tr><td>/29</td><td>255.255.255.248</td><td>6</td></tr>
+        <tr><td>/28</td><td>255.255.255.240</td><td>14</td></tr>
+        <tr><td>/27</td><td>255.255.255.224</td><td>30</td></tr>
+        <tr><td>/26</td><td>255.255.255.192</td><td>62</td></tr>
+        <tr><td>/25</td><td>255.255.255.128</td><td>126</td></tr>
+        <tr><td>/24</td><td>255.255.255.0</td><td>254</td></tr>
+        <tr><td>/23</td><td>255.255.254.0</td><td>510</td></tr>
+        <tr><td>/22</td><td>255.255.252.0</td><td>1022</td></tr>
+        <tr><td>/16</td><td>255.255.0.0</td><td>65534</td></tr>
+        <tr><td>/8</td><td>255.0.0.0</td><td>16777214</td></tr>
+      </tbody>
+    </table>
+  </article>
+</BaseLayout>

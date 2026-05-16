@@ -1,1 +1,77 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
+
+@theme {
+  --color-brand-50:  #f0f4ff;
+  --color-brand-100: #e0e9ff;
+  --color-brand-500: #3b5bdb;
+  --color-brand-600: #3451c7;
+  --color-brand-700: #2c44b0;
+  --color-brand-900: #1a2a6e;
+
+  --color-surface-0:   #ffffff;
+  --color-surface-50:  #f8f9fa;
+  --color-surface-100: #f1f3f5;
+  --color-surface-200: #e9ecef;
+  --color-surface-800: #1a1b1e;
+  --color-surface-900: #141517;
+
+  --font-family-sans: 'Inter', system-ui, sans-serif;
+  --font-family-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  --text-display: 2.5rem;
+  --text-display--line-height: 1.1;
+  --text-heading: 1.75rem;
+  --text-heading--line-height: 1.2;
+}
+
+@layer base {
+  :root {
+    --color-brand: #3b5bdb;
+    --color-brand-dark: #2c44b0;
+    --color-surface-0: #ffffff;
+    --color-surface-50: #f8f9fa;
+    --color-text-primary: #1a1b1e;
+    --color-text-secondary: #495057;
+    --color-border: #dee2e6;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    @apply bg-surface-50 text-[#1a1b1e] font-sans antialiased;
+    min-height: 100dvh;
+  }
+
+  *:focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .tool-card {
+    @apply bg-white border border-surface-200 rounded-xl p-6
+           transition-shadow duration-200 hover:shadow-md;
+  }
+
+  .btn-primary {
+    @apply bg-brand-500 text-white font-medium px-5 py-2.5 rounded-lg
+           hover:bg-brand-600 active:bg-brand-700 transition-colors
+           focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2;
+  }
+
+  .input-field {
+    @apply w-full border border-surface-200 rounded-lg px-3 py-2.5
+           font-mono text-sm bg-white
+           focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent
+           placeholder:text-[#adb5bd];
+  }
+
+  .section-label {
+    @apply text-xs font-semibold uppercase tracking-widest text-[#868e96];
+  }
+}

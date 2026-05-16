@@ -1,0 +1,71 @@
+---
+import BaseLayout from '../../components/layout/BaseLayout.astro';
+import AdSlot from '../../components/ads/AdSlot.astro';
+import VLSMPlanner from '../../components/islands/VLSMPlanner';
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "VLSM Subnet Planner",
+  "applicationCategory": "NetworkingApplication",
+  "operatingSystem": "Web",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "description": "Free VLSM (Variable Length Subnet Masking) planner. Enter a parent network block and host requirements per subnet to generate an optimized, non-overlapping IP addressing plan."
+};
+---
+
+<BaseLayout
+  title="VLSM Planner — Variable Length Subnet Masking"
+  description="Free VLSM subnet planner. Enter host requirements for each subnet and get an optimized IP addressing plan with zero wasted space. Supports any CIDR block."
+  jsonLd={jsonLd}
+>
+  <nav class="max-w-6xl mx-auto px-4 pt-6 pb-2" aria-label="Breadcrumb">
+    <ol class="flex items-center gap-2 text-sm text-[#868e96]">
+      <li><a href="/" class="hover:text-brand-600">Home</a></li>
+      <li aria-hidden="true">/</li>
+      <li><a href="/subnetting/" class="hover:text-brand-600">Subnetting</a></li>
+      <li aria-hidden="true">/</li>
+      <li class="text-[#1a1b1e] font-medium">VLSM Planner</li>
+    </ol>
+  </nav>
+
+  <header class="max-w-6xl mx-auto px-4 pt-4 pb-8">
+    <h1 class="text-3xl sm:text-4xl font-bold text-[#1a1b1e] mb-3">
+      VLSM Subnet Planner
+    </h1>
+    <p class="text-[#495057] text-lg max-w-2xl">
+      Plan an optimized IP addressing scheme using Variable Length Subnet Masking.
+      Enter your parent block and the number of hosts per segment — the planner
+      assigns the smallest possible subnet to each requirement, minimizing waste.
+    </p>
+  </header>
+
+  <div class="flex justify-center pb-6">
+    <AdSlot slot="leaderboard" />
+  </div>
+
+  <section class="max-w-6xl mx-auto px-4 pb-8">
+    <VLSMPlanner client:load />
+  </section>
+
+  <div class="flex justify-center pb-8">
+    <AdSlot slot="rectangle" />
+  </div>
+
+  <article class="max-w-3xl mx-auto px-4 pb-16 prose prose-slate">
+    <h2>What is VLSM?</h2>
+    <p>Variable Length Subnet Masking (VLSM) allows a network to use different subnet masks
+    for different subnets within the same network. Unlike classful subnetting where all
+    subnets share the same mask, VLSM assigns each subnet exactly the block size it needs.</p>
+
+    <h2>VLSM design rules</h2>
+    <p>The canonical VLSM algorithm: sort requirements largest-to-smallest, then assign
+    the smallest block that satisfies each requirement in order. This guarantees
+    non-overlapping, contiguous allocation with minimal wasted space.</p>
+
+    <h2>WAN links and point-to-point subnets</h2>
+    <p>Serial links between routers typically require only 2 IP addresses — one per end.
+    Use <code>/30</code> (2 usable hosts) for traditional point-to-point links, or
+    <code>/31</code> per RFC 3021 on modern IOS versions that support it.</p>
+  </article>
+</BaseLayout>
