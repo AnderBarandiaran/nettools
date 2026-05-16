@@ -11,7 +11,21 @@
       "Bash(git commit -m ' *)",
       "Bash(git push *)",
       "Bash(Remove-Item *)",
-      "PowerShell($env:CLOUDFLARE_API_TOKEN = \"CLOUDFLARE_TOKEN_REMOVED\"; cd C:\\\\Users\\\\ander\\\\nettools; npx wrangler pages deploy dist --project-name nettools 2>&1)"
+      "PowerShell($env:CLOUDFLARE_API_TOKEN = \"CLOUDFLARE_TOKEN_REMOVED\"; cd C:\\\\Users\\\\ander\\\\nettools; npx wrangler pages deploy dist --project-name nettools 2>&1)",
+      "Bash(pnpm add *)",
+      "Bash(pnpm run *)",
+      "Bash(del *)",
+      "Bash(git commit *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\ander\\\\nettools\" -Recurse -Directory)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Sort-Object)",
+      "Bash(npx vitest *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\ander\\\\nettools\\\\src\\\\components\" -Depth 0 -Directory -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object Name)",
+      "Bash(dir \"C:\\\\Users\\\\ander\\\\nettools\\\\src\\\\components\")",
+      "Bash(not exist *)",
+      "Read(//mnt/c/Users/ander/**)",
+      "Bash(npx astro *)"
     ]
   }
 }

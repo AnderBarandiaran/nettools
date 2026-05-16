@@ -1,0 +1,165 @@
+---
+import BaseLayout from '../../components/layout/BaseLayout.astro';
+import AdSlot from '../../components/ads/AdSlot.astro';
+import TopologySimulator from '../../components/islands/TopologySimulator';
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Network Topology Simulator",
+  "applicationCategory": "NetworkingApplication",
+  "operatingSystem": "Web",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "description": "Free drag-and-drop network topology simulator. Design network diagrams, auto-assign IP addresses, view adjacency tables, and export Cisco IOS configurations.",
+  "featureList": [
+    "Drag-and-drop network diagram editor",
+    "Automatic /30 IP address assignment",
+    "Adjacency table generation",
+    "Loop detection",
+    "Cisco IOS configuration export",
+    "Support for routers, switches, hosts, firewalls and cloud nodes"
+  ]
+};
+---
+
+<BaseLayout
+  title="Network Topology Simulator — Drag and Drop Network Design"
+  description="Free drag-and-drop network topology simulator. Design network diagrams, auto-assign IP addresses, view adjacency tables, and export Cisco IOS configurations."
+  jsonLd={jsonLd}
+>
+  <!-- Breadcrumb -->
+  <nav class="max-w-6xl mx-auto px-4 pt-6 pb-2" aria-label="Breadcrumb">
+    <ol class="flex items-center gap-2 text-sm text-[#868e96]">
+      <li><a href="/" class="hover:text-brand-600 transition-colors">Home</a></li>
+      <li aria-hidden="true">/</li>
+      <li class="text-[#1a1b1e] font-medium">Network Topology Simulator</li>
+    </ol>
+  </nav>
+
+  <!-- Header -->
+  <header class="max-w-6xl mx-auto px-4 pt-4 pb-8">
+    <h1 class="text-3xl sm:text-4xl font-bold text-[#1a1b1e] mb-3">
+      Network Topology Simulator
+    </h1>
+    <p class="text-[#495057] text-lg max-w-2xl">
+      Design network diagrams visually. Add routers, switches, and hosts, connect them,
+      auto-assign point-to-point IP addresses, and export Cisco IOS configurations —
+      all in the browser, no installation required.
+    </p>
+  </header>
+
+  <!-- Ad leaderboard -->
+  <div class="flex justify-center pb-6">
+    <AdSlot slot="leaderboard" />
+  </div>
+
+  <!-- Simulator island -->
+  <section class="max-w-6xl mx-auto px-4 pb-8">
+    <TopologySimulator client:load />
+  </section>
+
+  <!-- Ad rectangle -->
+  <div class="flex justify-center pb-8">
+    <AdSlot slot="rectangle" />
+  </div>
+
+  <!-- SEO editorial content -->
+  <article class="max-w-3xl mx-auto px-4 pb-16 prose prose-slate">
+
+    <h2>How to use the topology simulator</h2>
+    <p>
+      Start by adding devices from the left toolbar — click <strong>Router</strong>, <strong>Switch</strong>,
+      <strong>Host</strong>, <strong>Firewall</strong>, or <strong>Cloud</strong> to place nodes on the canvas.
+      Drag nodes to reposition them. Double-click a node to rename it inline.
+    </p>
+    <p>
+      To connect two devices, click <strong>Connect</strong> in the toolbar, then click the source device
+      followed by the target device. The simulator automatically selects the first available interface on
+      each end. Click a link to inspect or remove it.
+    </p>
+    <p>
+      Once your topology is laid out, use <strong>Auto-assign IPs</strong> to allocate
+      point-to-point <code>/30</code> subnets from the <code>10.0.0.0/8</code> pool — one per link,
+      starting from <code>10.0.0.0/30</code>. Use <strong>Analyze</strong> to generate the adjacency
+      table, detect loops, and identify disconnected devices. Use <strong>Export Cisco Config</strong>
+      to download ready-to-paste IOS commands for every router.
+    </p>
+
+    <h2>Network topology types</h2>
+    <p>
+      Choosing the right topology is the first design decision in any network project.
+      Each type offers different trade-offs in cost, redundancy, and scalability.
+    </p>
+
+    <h3>Star topology</h3>
+    <p>
+      All end devices connect to a central switch or hub. The star is the most common LAN topology
+      because failures are isolated — a broken cable only disconnects one host. The central switch
+      is a single point of failure, which is why enterprise designs stack or dual-home the core switch.
+      In the simulator, place a switch at the center and connect multiple hosts to it to model a star.
+    </p>
+
+    <h3>Mesh topology</h3>
+    <p>
+      Every node connects directly to every other node (full mesh) or to multiple peers (partial mesh).
+      Full mesh provides maximum redundancy but the number of links grows as <em>n(n−1)/2</em>,
+      making it expensive at scale. Partial mesh is common in WAN designs where critical sites get
+      redundant paths and branch offices get a single uplink. The simulator's loop detector will flag
+      a full mesh — use Spanning Tree Protocol (STP) or routing protocols to manage redundancy.
+    </p>
+
+    <h3>Ring topology</h3>
+    <p>
+      Devices form a closed loop where each node connects to exactly two neighbors.
+      Token Ring and SONET/SDH use ring architectures. A single link failure leaves the ring intact
+      (traffic reroutes); a second failure isolates a segment. The simulator's
+      <strong>Analyze</strong> button detects ring loops and warns about them —
+      useful when verifying L2 designs before enabling STP.
+    </p>
+
+    <h3>Bus topology</h3>
+    <p>
+      All devices share a single backbone cable with terminators at each end. Bus was standard in
+      10BASE-2 (Thinnet) Ethernet. A break anywhere on the bus brings down the whole segment,
+      so it has no place in modern designs. It is modeled in the simulator by using a single
+      switch with all hosts attached — conceptually equivalent for modern Ethernet.
+    </p>
+
+    <h3>Hybrid topology</h3>
+    <p>
+      Real enterprise networks combine multiple topologies. A common pattern: a redundant
+      core mesh between distribution-layer switches, star spokes extending to access-layer
+      switches, and point-to-point WAN links to branch routers. The simulator supports
+      all of these simultaneously — mix routers, switches, and hosts in any combination.
+    </p>
+
+    <h2>Point-to-point links and /30 subnets</h2>
+    <p>
+      Router-to-router links are always point-to-point: two endpoints, four addresses.
+      A <code>/30</code> subnet (<code>255.255.255.252</code>) provides exactly two usable
+      host addresses — one for each router interface — wasting no address space.
+      The auto-assign algorithm allocates contiguous <code>/30</code> blocks from the parent pool:
+      <code>10.0.0.0/30</code>, <code>10.0.0.4/30</code>, <code>10.0.0.8/30</code>, and so on.
+      RFC 3021 also permits <code>/31</code> subnets for P2P links, saving one more address per link.
+    </p>
+
+    <h2>Reading the adjacency table</h2>
+    <p>
+      The adjacency table produced by <strong>Analyze</strong> lists every neighbor relationship
+      in the topology. Each link appears twice — once from each endpoint's perspective —
+      matching the format used by protocols like OSPF and IS-IS in their link-state databases.
+      The table shows the local interface, the neighbor device and its interface, and the
+      subnet assigned to that link. Use it to verify connectivity before configuring routing.
+    </p>
+
+    <h2>Exporting to Cisco IOS</h2>
+    <p>
+      The <strong>Export Cisco Config</strong> button generates a configuration block for each router
+      in the topology. Each block includes <code>hostname</code>, one <code>interface</code> stanza
+      per connected interface with its <code>ip address</code> and <code>no shutdown</code>,
+      and a comment header. Paste the output directly into a Cisco router's privileged EXEC mode
+      or into a GNS3/Packet Tracer startup config.
+    </p>
+
+  </article>
+</BaseLayout>
