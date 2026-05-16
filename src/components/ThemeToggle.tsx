@@ -1,16 +1,17 @@
 import { useState, useEffect } from 'react';
 
-function HalfCircleIcon() {
+function SunMoonIcon({ isDark }: { isDark: boolean }) {
   return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-      <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M7 1.5a5.5 5.5 0 0 1 0 11V1.5z" fill="currentColor" />
+    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+      <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" strokeWidth="1.25" />
+      <path d="M6.5 2V1M6.5 12v-1M2 6.5H1M12 6.5h-1M3.4 3.4l-.7-.7M10.3 10.3l-.7-.7M9.6 3.4l.7-.7M2.7 10.3l.7-.7" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" style={{ opacity: isDark ? 0 : 1, transition: 'opacity 200ms ease' }} />
+      <path d="M6.5 2a4.5 4.5 0 0 0 0 9 3.5 3.5 0 0 1 0-9z" fill="currentColor" style={{ opacity: isDark ? 1 : 0, transition: 'opacity 200ms ease' }} />
     </svg>
   );
 }
 
 export default function ThemeToggle() {
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -19,8 +20,7 @@ export default function ThemeToggle() {
     if (saved === 'dark' || saved === 'light') {
       setTheme(saved);
     } else {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setTheme(prefersDark ? 'dark' : 'light');
+      setTheme('dark');
     }
   }, []);
 
@@ -59,13 +59,21 @@ export default function ThemeToggle() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        color: 'var(--text-2)',
+        color: 'var(--text-3)',
         cursor: 'pointer',
         transition: 'color 150ms ease, border-color 150ms ease, background-color 150ms ease',
         flexShrink: 0,
       }}
+      onMouseEnter={e => {
+        (e.currentTarget as HTMLElement).style.color = 'var(--text-1)';
+        (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-hover)';
+      }}
+      onMouseLeave={e => {
+        (e.currentTarget as HTMLElement).style.color = 'var(--text-3)';
+        (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)';
+      }}
     >
-      <HalfCircleIcon />
+      <SunMoonIcon isDark={theme === 'dark'} />
     </button>
   );
 }

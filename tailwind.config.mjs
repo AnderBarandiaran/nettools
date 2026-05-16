@@ -6,8 +6,8 @@ export default {
     extend: {
       fontFamily: {
         sans:  ['Geist', 'Helvetica Neue', 'system-ui', 'sans-serif'],
-        serif: ['Instrument Serif', 'Georgia', 'serif'],
-        mono:  ['JetBrains Mono', 'Fira Code', 'monospace'],
+        body:  ['Inter', 'Helvetica Neue', 'system-ui', 'sans-serif'],
+        mono:  ['Geist Mono', 'JetBrains Mono', 'monospace'],
       },
     },
   },

@@ -30,15 +30,14 @@ const ogImage = new URL('/og-default.png', Astro.url.origin).href;
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#3b5bdb" />
+  <meta name="theme-color" content="#08080c" />
 
-  <!-- FOUC prevention: apply theme before paint -->
+  <!-- FOUC prevention: default to dark, apply before paint -->
   <script is:inline>
     (function () {
       var saved = localStorage.getItem('nt-theme');
-      var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      var theme = saved || (prefersDark ? 'dark' : 'light');
-      document.documentElement.classList.toggle('dark', theme === 'dark');
+      var theme = saved || 'dark';
+      document.documentElement.classList.toggle('dark', theme !== 'light');
     })();
   </script>
 
@@ -72,93 +71,88 @@ const ogImage = new URL('/og-default.png', Astro.url.origin).href;
   <!-- Floating pill nav -->
   <div class="sticky top-0 z-50 px-4 pt-3 pb-1 pointer-events-none">
     <div class="max-w-6xl mx-auto pointer-events-auto">
-      <div
+      <nav
         style="
-          background-color: var(--surface-shell);
-          border: 1px solid var(--border);
-          border-radius: 20px;
-          padding: 5px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0.5rem 0.875rem;
+          gap: 1rem;
+          background-color: rgba(8, 8, 12, 0.75);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 14px;
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
           box-shadow: var(--shadow-nav);
-          backdrop-filter: blur(12px);
-          -webkit-backdrop-filter: blur(12px);
+          transition: background-color 250ms ease;
         "
+        aria-label="Main navigation"
+        class="nav-pill"
       >
-        <nav
+        <!-- Logo -->
+        <a
+          href="/"
           style="
-            background-color: var(--surface);
-            border-radius: 16px;
-            box-shadow: inset 0 1px 0 oklch(100% 0 0 / 0.08);
+            font-family: 'Geist', 'Helvetica Neue', system-ui, sans-serif;
+            font-weight: 700;
+            font-size: 0.9375rem;
+            color: var(--text-1);
+            text-decoration: none;
+            letter-spacing: -0.03em;
+            flex-shrink: 0;
+          "
+        >
+          NetTools
+        </a>
+
+        <!-- Nav links -->
+        <ul
+          style="
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            padding: 0.5rem 1.25rem;
-            gap: 1rem;
+            gap: 0.125rem;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            overflow-x: auto;
+            flex: 1;
+            scrollbar-width: none;
           "
-          aria-label="Main navigation"
         >
-          <!-- Logo -->
-          <a
-            href="/"
-            style="
-              font-weight: 700;
-              font-size: 0.9375rem;
-              color: var(--text-1);
-              text-decoration: none;
-              letter-spacing: -0.025em;
-              flex-shrink: 0;
-            "
-          >
-            NetTools
-          </a>
+          {[
+            { href: '/subnetting/', label: 'Subnet Calc' },
+            { href: '/subnetting/vlsm/', label: 'VLSM' },
+            { href: '/cisco-scripts/', label: 'Cisco Scripts' },
+            { href: '/topology/', label: 'Topology' },
+            { href: '/articles/', label: 'Articles' },
+          ].map(link => (
+            <li>
+              <a
+                href={link.href}
+                style="
+                  display: block;
+                  padding: 0.375rem 0.6875rem;
+                  border-radius: 8px;
+                  font-family: 'Geist', 'Helvetica Neue', system-ui, sans-serif;
+                  font-size: 0.8125rem;
+                  font-weight: 500;
+                  color: var(--text-3);
+                  text-decoration: none;
+                  white-space: nowrap;
+                  letter-spacing: -0.01em;
+                  transition: color 150ms ease, background-color 150ms ease;
+                "
+                onmouseover="this.style.color='var(--text-1)'; this.style.backgroundColor='rgba(255,255,255,0.06)'"
+                onmouseout="this.style.color='var(--text-3)'; this.style.backgroundColor='transparent'"
+              >
+                {link.label}
+              </a>
+            </li>
+          ))}
+        </ul>
 
-          <!-- Nav links — scrollable on small screens -->
-          <ul
-            style="
-              display: flex;
-              align-items: center;
-              gap: 0.125rem;
-              margin: 0;
-              padding: 0;
-              list-style: none;
-              overflow-x: auto;
-              flex: 1;
-              scrollbar-width: none;
-            "
-          >
-            {[
-              { href: '/subnetting/', label: 'Subnet Calc' },
-              { href: '/subnetting/vlsm/', label: 'VLSM' },
-              { href: '/cisco-scripts/', label: 'Cisco Scripts' },
-              { href: '/topology/', label: 'Topology' },
-              { href: '/articles/', label: 'Articles' },
-            ].map(link => (
-              <li>
-                <a
-                  href={link.href}
-                  style="
-                    display: block;
-                    padding: 0.375rem 0.75rem;
-                    border-radius: 10px;
-                    font-size: 0.8125rem;
-                    font-weight: 500;
-                    color: var(--text-2);
-                    text-decoration: none;
-                    white-space: nowrap;
-                    transition: color 150ms ease, background-color 150ms ease;
-                  "
-                  onmouseover="this.style.color='var(--text-1)'; this.style.backgroundColor='var(--surface-shell)'"
-                  onmouseout="this.style.color='var(--text-2)'; this.style.backgroundColor='transparent'"
-                >
-                  {link.label}
-                </a>
-              </li>
-            ))}
-          </ul>
-
-          <!-- Theme toggle -->
-          <ThemeToggle client:load />
-        </nav>
-      </div>
+        <ThemeToggle client:load />
+      </nav>
     </div>
   </div>
 
@@ -166,13 +160,12 @@ const ogImage = new URL('/og-default.png', Astro.url.origin).href;
     <slot />
   </main>
 
-  <footer style="border-top: 1px solid var(--border); margin-top: 5rem; padding: 3rem 0;">
+  <footer style="border-top: 1px solid var(--border-subtle); margin-top: 6rem; padding: 3rem 0;">
     <div class="max-w-6xl mx-auto px-4">
       <div style="display: flex; flex-direction: column; gap: 2rem;">
-        <!-- Top row -->
         <div style="display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 2rem;">
           <div>
-            <p style="font-weight: 700; font-size: 0.9375rem; color: var(--text-1); letter-spacing: -0.02em; margin-bottom: 0.5rem;">
+            <p style="font-family: 'Geist', sans-serif; font-weight: 700; font-size: 0.9375rem; color: var(--text-1); letter-spacing: -0.03em; margin-bottom: 0.5rem;">
               NetTools
             </p>
             <p style="font-size: 0.8125rem; color: var(--text-3); max-width: 28ch; line-height: 1.6;">
@@ -198,12 +191,12 @@ const ogImage = new URL('/og-default.png', Astro.url.origin).href;
                   border: 1px solid var(--border);
                   border-radius: 9999px;
                   font-size: 0.75rem;
-                  color: var(--text-2);
+                  color: var(--text-3);
                   text-decoration: none;
                   transition: color 150ms ease, border-color 150ms ease;
                 "
-                onmouseover="this.style.color='var(--text-1)'; this.style.borderColor='var(--text-3)'"
-                onmouseout="this.style.color='var(--text-2)'; this.style.borderColor='var(--border)'"
+                onmouseover="this.style.color='var(--text-1)'; this.style.borderColor='var(--border-hover)'"
+                onmouseout="this.style.color='var(--text-3)'; this.style.borderColor='var(--border)'"
               >
                 {link.label}
               </a>
@@ -211,7 +204,6 @@ const ogImage = new URL('/og-default.png', Astro.url.origin).href;
           </nav>
         </div>
 
-        <!-- Bottom row -->
         <div style="border-top: 1px solid var(--border-subtle); padding-top: 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
           <p style="font-size: 0.75rem; color: var(--text-3);">
             © {new Date().getFullYear()} NetTools. Built for network engineers.
@@ -235,9 +227,20 @@ const ogImage = new URL('/og-default.png', Astro.url.origin).href;
           }
         });
       },
-      { threshold: 0.08, rootMargin: '0px 0px -40px 0px' }
+      { threshold: 0.06, rootMargin: '0px 0px -30px 0px' }
     );
     document.querySelectorAll('.scroll-entry').forEach((el) => io.observe(el));
   </script>
+
+  <!-- Light mode nav tweak -->
+  <style>
+    :root:not(.dark) .nav-pill {
+      background-color: rgba(255, 255, 255, 0.85);
+      border-color: rgba(0, 0, 0, 0.07);
+    }
+    :root:not(.dark) .nav-pill a[onmouseover] {
+      color: var(--text-3);
+    }
+  </style>
 </body>
 </html>
