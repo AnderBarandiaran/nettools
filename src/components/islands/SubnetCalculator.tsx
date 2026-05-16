@@ -37,7 +37,7 @@ export default function SubnetCalculator() {
           placeholder="192.168.1.0/24 or 10.0.0.0 255.0.0.0"
           className="input-field"
           style={{ flex: 1 }}
-          aria-label="IPv4 CIDR notation"
+          aria-label="IPv4 CIDR notation input"
           spellCheck={false}
           autoComplete="off"
           autoCorrect="off"
