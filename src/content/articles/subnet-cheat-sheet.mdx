@@ -1,0 +1,72 @@
+---
+title: "IPv4 Subnet Mask Cheat Sheet — Complete Reference"
+description: "Complete IPv4 subnet mask cheat sheet with CIDR notation, usable hosts, wildcard masks, and binary representations for all prefix lengths /1 to /32."
+pubDate: 2026-01-15
+category: subnetting
+tags: ["subnet mask", "CIDR", "cheat sheet", "IPv4", "networking"]
+featured: true
+---
+
+# IPv4 Subnet Mask Cheat Sheet
+
+A complete reference for all IPv4 subnet masks from /1 to /32, including usable host counts, wildcard masks, and binary representations.
+
+## Quick reference table
+
+| CIDR | Subnet mask | Wildcard mask | Usable hosts | Network bits | Host bits |
+|------|-------------|---------------|--------------|--------------|-----------|
+| /8   | 255.0.0.0        | 0.255.255.255   | 16,777,214 | 8  | 24 |
+| /9   | 255.128.0.0      | 0.127.255.255   | 8,388,606  | 9  | 23 |
+| /10  | 255.192.0.0      | 0.63.255.255    | 4,194,302  | 10 | 22 |
+| /11  | 255.224.0.0      | 0.31.255.255    | 2,097,150  | 11 | 21 |
+| /12  | 255.240.0.0      | 0.15.255.255    | 1,048,574  | 12 | 20 |
+| /13  | 255.248.0.0      | 0.7.255.255     | 524,286    | 13 | 19 |
+| /14  | 255.252.0.0      | 0.3.255.255     | 262,142    | 14 | 18 |
+| /15  | 255.254.0.0      | 0.1.255.255     | 131,070    | 15 | 17 |
+| /16  | 255.255.0.0      | 0.0.255.255     | 65,534     | 16 | 16 |
+| /17  | 255.255.128.0    | 0.0.127.255     | 32,766     | 17 | 15 |
+| /18  | 255.255.192.0    | 0.0.63.255      | 16,382     | 18 | 14 |
+| /19  | 255.255.224.0    | 0.0.31.255      | 8,190      | 19 | 13 |
+| /20  | 255.255.240.0    | 0.0.15.255      | 4,094      | 20 | 12 |
+| /21  | 255.255.248.0    | 0.0.7.255       | 2,046      | 21 | 11 |
+| /22  | 255.255.252.0    | 0.0.3.255       | 1,022      | 22 | 10 |
+| /23  | 255.255.254.0    | 0.0.1.255       | 510        | 23 | 9  |
+| /24  | 255.255.255.0    | 0.0.0.255       | 254        | 24 | 8  |
+| /25  | 255.255.255.128  | 0.0.0.127       | 126        | 25 | 7  |
+| /26  | 255.255.255.192  | 0.0.0.63        | 62         | 26 | 6  |
+| /27  | 255.255.255.224  | 0.0.0.31        | 30         | 27 | 5  |
+| /28  | 255.255.255.240  | 0.0.0.15        | 14         | 28 | 4  |
+| /29  | 255.255.255.248  | 0.0.0.7         | 6          | 29 | 3  |
+| /30  | 255.255.255.252  | 0.0.0.3         | 2          | 30 | 2  |
+| /31  | 255.255.255.254  | 0.0.0.1         | 2*         | 31 | 1  |
+| /32  | 255.255.255.255  | 0.0.0.0         | 1**        | 32 | 0  |
+
+*RFC 3021 point-to-point links. **Host route.
+
+## Private IP ranges (RFC 1918)
+
+| Range | CIDR | Addresses |
+|-------|------|-----------|
+| 10.0.0.0 – 10.255.255.255 | 10.0.0.0/8 | 16,777,216 |
+| 172.16.0.0 – 172.31.255.255 | 172.16.0.0/12 | 1,048,576 |
+| 192.168.0.0 – 192.168.255.255 | 192.168.0.0/16 | 65,536 |
+
+## Special ranges
+
+| Range | Purpose |
+|-------|---------|
+| 127.0.0.0/8 | Loopback |
+| 169.254.0.0/16 | Link-local (APIPA) |
+| 224.0.0.0/4 | Multicast (Class D) |
+| 240.0.0.0/4 | Reserved (Class E) |
+| 0.0.0.0/0 | Default route |
+
+## How to calculate subnet masks
+
+To convert a CIDR prefix to a subnet mask: set the first N bits to 1, the remaining 32-N bits to 0, then convert each 8-bit group to decimal.
+
+Example for /26:
+- Binary: 11111111.11111111.11111111.11000000
+- Decimal: 255.255.255.192
+
+Use our [subnet calculator](/subnetting/) to compute any subnet instantly.

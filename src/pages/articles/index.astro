@@ -1,0 +1,48 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../components/layout/BaseLayout.astro';
+import AdSlot from '../../components/ads/AdSlot.astro';
+
+const articles = await getCollection('articles');
+const sorted = articles.sort((a, b) =>
+  b.data.pubDate.getTime() - a.data.pubDate.getTime()
+);
+---
+
+<BaseLayout
+  title="Networking Articles — Guides and References"
+  description="Free networking guides, subnet cheat sheets, Cisco IOS configuration examples, and VLSM practice problems for network engineers."
+>
+  <header class="max-w-6xl mx-auto px-4 pt-10 pb-8">
+    <h1 class="text-3xl font-bold text-[#1a1b1e] mb-3">Networking articles</h1>
+    <p class="text-[#495057]">Guides, references, and practice problems for network engineers.</p>
+  </header>
+
+  <div class="flex justify-center pb-6">
+    <AdSlot slot="leaderboard" />
+  </div>
+
+  <section class="max-w-6xl mx-auto px-4 pb-16">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {sorted.map(article => (
+        <a href={`/articles/${article.id}/`} class="tool-card group block">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="section-label">{article.data.category}</span>
+            {article.data.featured && (
+              <span class="text-xs font-medium bg-brand-50 text-brand-700 px-2 py-0.5 rounded-full">
+                Featured
+              </span>
+            )}
+          </div>
+          <h2 class="text-lg font-semibold text-[#1a1b1e] mb-2 group-hover:text-brand-600 transition-colors leading-snug">
+            {article.data.title}
+          </h2>
+          <p class="text-sm text-[#495057] leading-relaxed">{article.data.description}</p>
+          <p class="text-xs text-[#868e96] mt-3">
+            {article.data.pubDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+          </p>
+        </a>
+      ))}
+    </div>
+  </section>
+</BaseLayout>

@@ -1,0 +1,55 @@
+---
+title: "VLSM Practice Problems with Solutions — Network Design Exercises"
+description: "Ten VLSM practice problems with step-by-step solutions. Practice variable length subnet masking for CCNA, CCNP, and real-world network design scenarios."
+pubDate: 2026-01-25
+category: subnetting
+tags: ["VLSM", "practice problems", "CCNA", "subnetting", "network design"]
+featured: false
+---
+
+# VLSM Practice Problems
+
+Ten progressively complex VLSM design exercises with complete solutions. Suitable for CCNA exam preparation and real-world network design practice.
+
+## Problem 1 — Small office network
+
+**Given block:** 192.168.10.0/24
+
+**Requirements:**
+- LAN-A: 100 hosts
+- LAN-B: 50 hosts
+- LAN-C: 20 hosts
+- WAN link: 2 hosts
+
+**Solution:**
+
+Sort largest to smallest: 100, 50, 20, 2
+
+| Subnet | Hosts needed | Prefix | Network | Range |
+|--------|-------------|--------|---------|-------|
+| LAN-A | 100 | /25 | 192.168.10.0 | .1 – .126 |
+| LAN-B | 50  | /26 | 192.168.10.128 | .129 – .190 |
+| LAN-C | 20  | /27 | 192.168.10.192 | .193 – .222 |
+| WAN   | 2   | /30 | 192.168.10.224 | .225 – .226 |
+
+Remaining space: 192.168.10.228/30 through 192.168.10.255
+
+## Problem 2 — Branch office with multiple WAN links
+
+**Given block:** 10.10.0.0/22 (1022 usable hosts)
+
+**Requirements:**
+- Data center LAN: 400 hosts
+- Office LAN: 200 hosts
+- Guest WiFi: 100 hosts
+- Management: 30 hosts
+- WAN-Primary: 2 hosts
+- WAN-Backup: 2 hosts
+
+Solve this using our [VLSM planner](/subnetting/vlsm/) and verify your answer.
+
+**Solution:** Enter 10.10.0.0/22 as the parent block with the requirements above. The planner will assign /23, /24, /25, /27, /30, /30 in order.
+
+## Problems 3-10
+
+For progressively harder exercises including IPv6 prefix delegation, hierarchical addressing, and route summarization scenarios, use the VLSM planner interactively — enter any parent block and requirement set to generate and verify solutions instantly.

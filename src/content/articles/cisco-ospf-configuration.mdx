@@ -1,0 +1,116 @@
+---
+title: "Cisco OSPF Configuration Guide — IOS Commands and Examples"
+description: "Complete guide to configuring OSPF on Cisco IOS routers. Includes basic setup, multi-area OSPF, passive interfaces, redistribution, and verification commands."
+pubDate: 2026-01-20
+category: cisco
+tags: ["OSPF", "Cisco IOS", "routing", "configuration", "network engineer"]
+featured: true
+---
+
+# Cisco OSPF Configuration Guide
+
+OSPF (Open Shortest Path First) is the most widely deployed interior gateway protocol in enterprise networks. This guide covers configuration from basic single-area setups to multi-area deployments.
+
+## Basic OSPF configuration
+
+Minimum configuration for a single-area OSPF deployment:
+
+```
+router ospf 1
+ router-id 1.1.1.1
+ network 192.168.1.0 0.0.0.255 area 0
+ network 10.0.0.0 0.0.0.3 area 0
+```
+
+### Interface-level OSPF (modern approach)
+
+Preferred on IOS 12.4+ — attach OSPF directly to interfaces:
+
+```
+interface GigabitEthernet0/0
+ ip ospf 1 area 0
+ ip ospf cost 10
+```
+
+## Multi-area OSPF
+
+Divide large networks into areas to limit LSA flooding. The backbone router (area 0 only):
+
+```
+router ospf 1
+ router-id 1.1.1.1
+ network 10.0.0.0 0.0.0.3 area 0
+```
+
+The ABR (Area Border Router) connecting backbone to area 1:
+
+```
+router ospf 1
+ router-id 2.2.2.2
+ network 10.0.0.0 0.0.0.3 area 0
+ network 192.168.10.0 0.0.0.255 area 1
+ network 192.168.20.0 0.0.0.255 area 1
+```
+
+Area 0 (backbone) must connect all other areas. ABRs maintain separate LSDBs per area and summarize routes between them.
+
+## Passive interfaces
+
+Prevent OSPF hellos on user-facing interfaces while still advertising the network.
+
+Explicit approach — mark individual interfaces passive:
+
+```
+router ospf 1
+ passive-interface GigabitEthernet0/1
+ passive-interface GigabitEthernet0/2
+```
+
+Default approach — passive on all, then opt-in routed interfaces:
+
+```
+router ospf 1
+ passive-interface default
+ no passive-interface GigabitEthernet0/0
+ no passive-interface GigabitEthernet0/1
+```
+
+## OSPF authentication
+
+MD5 authentication per interface:
+
+```
+interface GigabitEthernet0/0
+ ip ospf authentication message-digest
+ ip ospf message-digest-key 1 md5 SecretKey123
+```
+
+## Redistribution into OSPF
+
+Redistribute static routes and connected interfaces:
+
+```
+router ospf 1
+ redistribute static subnets metric 20 metric-type 2
+ redistribute connected subnets
+```
+
+## Verification commands
+
+| Command | Purpose |
+|---------|---------|
+| `show ip ospf neighbor` | Verify adjacencies |
+| `show ip ospf database` | View LSDB |
+| `show ip route ospf` | OSPF routes in routing table |
+| `show ip ospf interface` | Interface OSPF parameters |
+| `debug ip ospf adj` | Adjacency formation debug |
+
+## Common OSPF issues
+
+**Neighbors stuck in EXSTART/EXCHANGE:** MTU mismatch. Fix with `ip ospf mtu-ignore` on the affected interface.
+
+**Neighbors not forming:** Check that area IDs match, hello/dead timers match, and authentication matches if configured.
+
+**Route not appearing:** Verify the network statement wildcard mask covers the interface IP.
+
+Use our [Cisco script generator](/cisco-scripts/) to generate OSPF configurations automatically.
