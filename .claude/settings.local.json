@@ -25,7 +25,14 @@
       "Bash(dir \"C:\\\\Users\\\\ander\\\\nettools\\\\src\\\\components\")",
       "Bash(not exist *)",
       "Read(//mnt/c/Users/ander/**)",
-      "Bash(npx astro *)"
+      "Bash(npx astro *)",
+      "PowerShell(pnpm *)",
+      "PowerShell(pnpm install *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\ander\\\\nettools\" -Recurse -Force)",
+      "Bash(Select-Object FullName, PSIsContainer)",
+      "Bash(Sort-Object FullName)",
+      "Bash(Format-Table -AutoSize)",
+      "Bash(pnpm build *)"
     ]
   }
 }
