@@ -83,8 +83,16 @@ const ogImage = new URL('/og-default.png', Astro.url.origin).href;
     <slot />
   </main>
 
-  <footer class="border-t border-surface-200 mt-16 py-8 text-center text-sm text-[#868e96]">
-    <p>© {new Date().getFullYear()} NetTools. Built for network engineers.</p>
+  <footer class="border-t border-surface-200 mt-16 py-8">
+    <div class="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-[#868e96]">
+      <p>© {new Date().getFullYear()} NetTools. Built for network engineers.</p>
+      <nav class="flex items-center gap-6">
+        <a href="/about/" class="hover:text-brand-600 transition-colors">About</a>
+        <a href="/privacy/" class="hover:text-brand-600 transition-colors">Privacy</a>
+        <a href="/articles/" class="hover:text-brand-600 transition-colors">Articles</a>
+        <a href="https://github.com/AnderBarandiaran/nettools" class="hover:text-brand-600 transition-colors">GitHub</a>
+      </nav>
+    </div>
   </footer>
 </body>
 </html>
