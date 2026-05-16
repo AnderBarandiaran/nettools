@@ -13,36 +13,132 @@ const sorted = articles.sort((a, b) =>
   title="Networking Articles — Guides and References"
   description="Free networking guides, subnet cheat sheets, Cisco IOS configuration examples, and VLSM practice problems for network engineers."
 >
-  <header class="max-w-6xl mx-auto px-4 pt-10 pb-8">
-    <h1 class="text-3xl font-bold text-[#1a1b1e] mb-3">Networking articles</h1>
-    <p class="text-[#495057]">Guides, references, and practice problems for network engineers.</p>
+
+  <!-- Header — editorial style -->
+  <header class="max-w-3xl mx-auto px-4 pt-12 pb-10">
+    <p class="section-label" style="margin-bottom: 0.875rem;">Knowledge base</p>
+    <h1
+      class="font-serif-display"
+      style="font-size: clamp(2rem, 4vw, 3rem); color: var(--text-1); margin-bottom: 0.875rem;"
+    >
+      Networking articles
+    </h1>
+    <p style="font-size: 1rem; color: var(--text-2); line-height: 1.65; max-width: 52ch;">
+      Guides, subnet references, and configuration examples for network engineers.
+    </p>
   </header>
 
-  <div class="flex justify-center pb-6">
+  <!-- Ad slot -->
+  <div style="display: flex; justify-content: center; padding-bottom: 1.5rem;">
     <AdSlot slot="leaderboard" />
   </div>
 
-  <section class="max-w-6xl mx-auto px-4 pb-16">
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {sorted.map(article => (
-        <a href={`/articles/${article.id}/`} class="tool-card group block">
-          <div class="flex items-center gap-2 mb-3">
-            <span class="section-label">{article.data.category}</span>
-            {article.data.featured && (
-              <span class="text-xs font-medium bg-brand-50 text-brand-700 px-2 py-0.5 rounded-full">
-                Featured
-              </span>
+  <!-- Article list — editorial layout, not a card grid -->
+  <section
+    class="max-w-3xl mx-auto px-4 pb-20"
+    style="border-top: 1px solid var(--border-subtle);"
+  >
+    {sorted.map((article, i) => {
+      const date = article.data.pubDate.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+      return (
+        <a
+          href={`/articles/${article.id}/`}
+          style="
+            display: grid;
+            grid-template-columns: 100px 1fr;
+            gap: 1.5rem;
+            padding: 1.75rem 0;
+            border-bottom: 1px solid var(--border-subtle);
+            text-decoration: none;
+            align-items: start;
+            transition: none;
+          "
+          class="article-row"
+        >
+          <!-- Left: date + category -->
+          <div>
+            <p style="font-size: 0.75rem; color: var(--text-3); font-variant-numeric: tabular-nums; margin-bottom: 0.375rem;">
+              {date}
+            </p>
+            <span
+              style="
+                display: inline-block;
+                font-size: 0.625rem;
+                font-weight: 600;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+                color: var(--accent-text);
+                background-color: var(--accent-subtle);
+                padding: 0.2rem 0.5rem;
+                border-radius: 4px;
+              "
+            >
+              {article.data.category}
+            </span>
+          </div>
+
+          <!-- Right: title + description -->
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
+              <h2
+                style="
+                  font-size: 1.0625rem;
+                  font-weight: 600;
+                  color: var(--text-1);
+                  letter-spacing: -0.02em;
+                  line-height: 1.35;
+                "
+                class="article-title"
+              >
+                {article.data.title}
+              </h2>
+              {article.data.featured && (
+                <span
+                  style="
+                    font-size: 0.625rem;
+                    font-weight: 600;
+                    letter-spacing: 0.06em;
+                    text-transform: uppercase;
+                    color: var(--warning);
+                    background-color: var(--warning-subtle);
+                    padding: 0.2rem 0.5rem;
+                    border-radius: 4px;
+                    white-space: nowrap;
+                  "
+                >
+                  Featured
+                </span>
+              )}
+            </div>
+            <p style="font-size: 0.875rem; color: var(--text-2); line-height: 1.6;">
+              {article.data.description}
+            </p>
+            {article.data.readingTime && (
+              <p style="font-size: 0.75rem; color: var(--text-3); margin-top: 0.5rem;">
+                {article.data.readingTime} min read
+              </p>
             )}
           </div>
-          <h2 class="text-lg font-semibold text-[#1a1b1e] mb-2 group-hover:text-brand-600 transition-colors leading-snug">
-            {article.data.title}
-          </h2>
-          <p class="text-sm text-[#495057] leading-relaxed">{article.data.description}</p>
-          <p class="text-xs text-[#868e96] mt-3">
-            {article.data.pubDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-          </p>
         </a>
-      ))}
-    </div>
+      );
+    })}
   </section>
+
 </BaseLayout>
+
+<style>
+  .article-row:hover .article-title {
+    color: var(--accent-text);
+  }
+
+  @media (max-width: 480px) {
+    .article-row {
+      grid-template-columns: 1fr !important;
+      gap: 0.5rem !important;
+    }
+  }
+</style>

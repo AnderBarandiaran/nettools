@@ -15,7 +15,7 @@ const TABS: { id: Tab; label: string }[] = [
 let _uid = 0;
 const uid = () => ++_uid;
 
-type OspfNet  = { id: number; network: string; wildcard: string; area: string };
+type OspfNet = { id: number; network: string; wildcard: string; area: string };
 type Passive  = { id: number; iface: string };
 type SRoute   = { id: number; destination: string; mask: string; nextHop: string; dist: string; desc: string };
 type AclRule  = { id: number; action: string; protocol: string; source: string; destination: string; port: string; remark: string };
@@ -46,45 +46,72 @@ function TerminalLine({ line, index }: { line: string; index: number }) {
   const t = line.trimStart();
 
   if (t.startsWith('!')) {
-    return <span key={index} className="block text-[#5c6370]">{line || ' '}</span>;
+    return (
+      <span key={index} style={{ display: 'block', color: 'oklch(45% 0.04 250)' }}>
+        {line || ' '}
+      </span>
+    );
   }
 
-  // Color permit/deny keywords
   if (/\b(permit|deny)\b/.test(t)) {
     const parts = line.split(/(\bpermit\b|\bdeny\b)/);
     return (
-      <span key={index} className="block">
+      <span key={index} style={{ display: 'block' }}>
         {parts.map((p, j) =>
-          p === 'permit' ? <span key={j} className="text-[#98c379]">{p}</span> :
-          p === 'deny'   ? <span key={j} className="text-[#e06c75]">{p}</span> :
-          <span key={j} className="text-[#abb2bf]">{p}</span>
+          p === 'permit'
+            ? <span key={j} style={{ color: 'oklch(65% 0.15 160)' }}>{p}</span>
+            : p === 'deny'
+            ? <span key={j} style={{ color: 'oklch(62% 0.18 25)' }}>{p}</span>
+            : <span key={j} style={{ color: 'oklch(72% 0.06 250)' }}>{p}</span>
         )}
       </span>
     );
   }
 
-  return <span key={index} className="block text-[#abb2bf]">{line || ' '}</span>;
+  return (
+    <span key={index} style={{ display: 'block', color: 'oklch(72% 0.06 250)' }}>
+      {line || ' '}
+    </span>
+  );
 }
 
 // ─── Small helpers ────────────────────────────────────────────────────────────
 
 const FL = ({ text }: { text: string }) => (
-  <p className="text-xs font-medium text-[#495057] mb-1">{text}</p>
+  <p style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-2)', marginBottom: '0.375rem' }}>{text}</p>
 );
 
 const RemoveBtn = ({ onClick, disabled }: { onClick: () => void; disabled?: boolean }) => (
   <button
     onClick={onClick}
     disabled={disabled}
-    className="h-9 w-8 flex items-center justify-center text-[#adb5bd] hover:text-red-500 transition-colors rounded disabled:opacity-30"
     aria-label="Remove row"
+    style={{
+      height: '36px',
+      width: '32px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: 'var(--text-3)',
+      background: 'none',
+      border: 'none',
+      cursor: disabled ? 'not-allowed' : 'pointer',
+      borderRadius: '6px',
+      fontSize: '1.125rem',
+      opacity: disabled ? 0.3 : 1,
+      transition: 'color 150ms ease',
+      flexShrink: 0,
+    }}
   >
     ×
   </button>
 );
 
 const AddBtn = ({ onClick, label }: { onClick: () => void; label: string }) => (
-  <button onClick={onClick} className="text-xs font-medium text-brand-600 hover:text-brand-700">
+  <button
+    onClick={onClick}
+    style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+  >
     {label}
   </button>
 );
@@ -161,7 +188,6 @@ export default function CiscoScriptGen() {
           duplexAuto:    ifDuplex,
           speedAuto:     ifSpeed,
         });
-
       } else if (tab === 'ospf-basic') {
         r = generateCiscoScript({
           type:      'ospf-basic',
@@ -175,7 +201,6 @@ export default function CiscoScriptGen() {
           passiveInterfaces:           ospfPass.map(p => p.iface).filter(Boolean),
           defaultInformationOriginate: ospfDef,
         });
-
       } else if (tab === 'static-routes') {
         r = generateCiscoScript({
           type:   'static-routes',
@@ -187,7 +212,6 @@ export default function CiscoScriptGen() {
             description:   rt.desc.trim() || undefined,
           })),
         });
-
       } else {
         r = generateCiscoScript({
           type:  'acl-extended',
@@ -219,29 +243,42 @@ export default function CiscoScriptGen() {
       await navigator.clipboard.writeText(result.script);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch {
-      /* clipboard unavailable */
-    }
+    } catch { /* clipboard unavailable */ }
   };
 
   const inp = 'input-field';
 
-  return (
-    <div className="space-y-6">
+  const checkboxLabel: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    cursor: 'pointer',
+    fontSize: '0.875rem',
+    color: 'var(--text-2)',
+  };
 
-      {/* ── Script type tabs ────────────────────────────────────────── */}
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
+      {/* Script type tabs */}
       <div className="tool-card">
-        <p className="section-label mb-3">Script type</p>
-        <div className="flex flex-wrap gap-2">
+        <p className="section-label" style={{ marginBottom: '0.75rem' }}>Script type</p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
           {TABS.map(t => (
             <button
               key={t.id}
               onClick={() => { setTab(t.id); setResult(null); setError(null); }}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                tab === t.id
-                  ? 'bg-brand-500 text-white'
-                  : 'bg-surface-100 text-[#495057] hover:bg-surface-200'
-              }`}
+              style={{
+                padding: '0.5rem 1rem',
+                borderRadius: '8px',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'background-color 150ms ease, color 150ms ease',
+                backgroundColor: tab === t.id ? 'var(--accent)' : 'var(--surface-shell)',
+                color:           tab === t.id ? 'oklch(99% 0.004 250)' : 'var(--text-2)',
+              }}
             >
               {t.label}
             </button>
@@ -249,83 +286,49 @@ export default function CiscoScriptGen() {
         </div>
       </div>
 
-      {/* ── Dynamic form ─────────────────────────────────────────────── */}
-      <div className="tool-card space-y-5">
+      {/* Dynamic form */}
+      <div className="tool-card" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
-        {/* interface-basic ─────────────────────────────────────────── */}
+        {/* interface-basic */}
         {tab === 'interface-basic' && (
           <>
             <p className="section-label">Interface parameters</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <FL text="Interface name" />
-                <input className={inp} value={ifName} onChange={e => setIfName(e.target.value)}
-                  placeholder="GigabitEthernet0/0" spellCheck={false} />
-              </div>
-              <div>
-                <FL text="Description (optional)" />
-                <input className={inp} value={ifDesc} onChange={e => setIfDesc(e.target.value)}
-                  placeholder="LAN segment" spellCheck={false} />
-              </div>
-              <div>
-                <FL text="IP address" />
-                <input className={inp} value={ifIp} onChange={e => setIfIp(e.target.value)}
-                  placeholder="192.168.1.1" spellCheck={false} />
-              </div>
-              <div>
-                <FL text="Subnet mask" />
-                <input className={inp} value={ifMask} onChange={e => setIfMask(e.target.value)}
-                  placeholder="255.255.255.0" spellCheck={false} />
-              </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+              <div><FL text="Interface name" /><input className={inp} value={ifName} onChange={e => setIfName(e.target.value)} placeholder="GigabitEthernet0/0" spellCheck={false} /></div>
+              <div><FL text="Description (optional)" /><input className={inp} value={ifDesc} onChange={e => setIfDesc(e.target.value)} placeholder="LAN segment" spellCheck={false} /></div>
+              <div><FL text="IP address" /><input className={inp} value={ifIp} onChange={e => setIfIp(e.target.value)} placeholder="192.168.1.1" spellCheck={false} /></div>
+              <div><FL text="Subnet mask" /><input className={inp} value={ifMask} onChange={e => setIfMask(e.target.value)} placeholder="255.255.255.0" spellCheck={false} /></div>
             </div>
-            <div className="flex flex-wrap gap-6">
-              <label className="flex items-center gap-2 cursor-pointer text-sm text-[#495057]">
-                <input type="checkbox" checked={!ifShutdown} onChange={e => setIfShutdown(!e.target.checked)}
-                  className="w-4 h-4 accent-brand-500" />
-                no shutdown (port enabled)
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer text-sm text-[#495057]">
-                <input type="checkbox" checked={ifDuplex} onChange={e => setIfDuplex(e.target.checked)}
-                  className="w-4 h-4 accent-brand-500" />
-                duplex auto
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer text-sm text-[#495057]">
-                <input type="checkbox" checked={ifSpeed} onChange={e => setIfSpeed(e.target.checked)}
-                  className="w-4 h-4 accent-brand-500" />
-                speed auto
-              </label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem' }}>
+              <label style={checkboxLabel}><input type="checkbox" checked={!ifShutdown} onChange={e => setIfShutdown(!e.target.checked)} style={{ width: '16px', height: '16px', accentColor: 'var(--accent)' }} />no shutdown (port enabled)</label>
+              <label style={checkboxLabel}><input type="checkbox" checked={ifDuplex} onChange={e => setIfDuplex(e.target.checked)} style={{ width: '16px', height: '16px', accentColor: 'var(--accent)' }} />duplex auto</label>
+              <label style={checkboxLabel}><input type="checkbox" checked={ifSpeed} onChange={e => setIfSpeed(e.target.checked)} style={{ width: '16px', height: '16px', accentColor: 'var(--accent)' }} />speed auto</label>
             </div>
           </>
         )}
 
-        {/* ospf-basic ──────────────────────────────────────────────── */}
+        {/* ospf-basic */}
         {tab === 'ospf-basic' && (
           <>
             <p className="section-label">OSPF process</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <FL text="Process ID (1–65535)" />
-                <input type="number" className={inp} value={ospfPid} min={1} max={65535}
-                  onChange={e => setOspfPid(e.target.value)} />
-              </div>
-              <div>
-                <FL text="Router ID (optional — e.g. loopback IP)" />
-                <input className={inp} value={ospfRid} onChange={e => setOspfRid(e.target.value)}
-                  placeholder="1.1.1.1" spellCheck={false} />
-              </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+              <div><FL text="Process ID (1–65535)" /><input type="number" className={inp} value={ospfPid} min={1} max={65535} onChange={e => setOspfPid(e.target.value)} /></div>
+              <div><FL text="Router ID (optional)" /><input className={inp} value={ospfRid} onChange={e => setOspfRid(e.target.value)} placeholder="1.1.1.1" spellCheck={false} /></div>
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-2">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                 <FL text="Network statements" />
                 <AddBtn onClick={addNet} label="+ Add network" />
               </div>
-              <div className="space-y-2">
-                <div className="grid grid-cols-[1fr_1fr_72px_32px] gap-2 text-xs text-[#868e96] font-medium px-1">
-                  <span>Network address</span><span>Wildcard mask</span><span>Area</span><span />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 72px 32px', gap: '0.5rem', padding: '0 0.25rem' }}>
+                  {['Network address', 'Wildcard mask', 'Area', ''].map(h => (
+                    <span key={h} style={{ fontSize: '0.6875rem', color: 'var(--text-3)', fontWeight: 500 }}>{h}</span>
+                  ))}
                 </div>
                 {ospfNets.map(n => (
-                  <div key={n.id} className="grid grid-cols-[1fr_1fr_72px_32px] gap-2 items-center">
+                  <div key={n.id} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 72px 32px', gap: '0.5rem', alignItems: 'center' }}>
                     <input className={inp} value={n.network}  onChange={e => updNet(n.id, 'network',  e.target.value)} placeholder="192.168.1.0" spellCheck={false} />
                     <input className={inp} value={n.wildcard} onChange={e => updNet(n.id, 'wildcard', e.target.value)} placeholder="0.0.0.255"   spellCheck={false} />
                     <input className={inp} value={n.area}     onChange={e => updNet(n.id, 'area',     e.target.value)} placeholder="0" />
@@ -336,47 +339,46 @@ export default function CiscoScriptGen() {
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <FL text="Passive interfaces (optional — suppress OSPF hellos)" />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <FL text="Passive interfaces (optional)" />
                 <AddBtn onClick={addPass} label="+ Add" />
               </div>
-              <div className="space-y-2">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 {ospfPass.map(p => (
-                  <div key={p.id} className="grid grid-cols-[1fr_32px] gap-2 items-center">
-                    <input className={inp} value={p.iface} onChange={e => updPass(p.id, e.target.value)}
-                      placeholder="GigabitEthernet0/1" spellCheck={false} />
+                  <div key={p.id} style={{ display: 'grid', gridTemplateColumns: '1fr 32px', gap: '0.5rem', alignItems: 'center' }}>
+                    <input className={inp} value={p.iface} onChange={e => updPass(p.id, e.target.value)} placeholder="GigabitEthernet0/1" spellCheck={false} />
                     <RemoveBtn onClick={() => rmPass(p.id)} />
                   </div>
                 ))}
               </div>
             </div>
 
-            <label className="flex items-center gap-2 cursor-pointer text-sm text-[#495057]">
-              <input type="checkbox" checked={ospfDef} onChange={e => setOspfDef(e.target.checked)}
-                className="w-4 h-4 accent-brand-500" />
+            <label style={checkboxLabel}>
+              <input type="checkbox" checked={ospfDef} onChange={e => setOspfDef(e.target.checked)} style={{ width: '16px', height: '16px', accentColor: 'var(--accent)' }} />
               Redistribute default route (default-information originate)
             </label>
           </>
         )}
 
-        {/* static-routes ───────────────────────────────────────────── */}
+        {/* static-routes */}
         {tab === 'static-routes' && (
           <>
-            <div className="flex items-center justify-between">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <p className="section-label">Static routes</p>
               <AddBtn onClick={addRoute} label="+ Add route" />
             </div>
-            <div className="overflow-x-auto -mx-6 px-6">
-              <div className="min-w-[700px] space-y-2">
-                <div className="grid grid-cols-[1fr_1fr_1fr_72px_1fr_32px] gap-2 text-xs text-[#868e96] font-medium px-1">
-                  <span>Destination</span><span>Mask</span><span>Next hop / Interface</span>
-                  <span>AD</span><span>Description</span><span />
+            <div style={{ overflowX: 'auto', marginLeft: '-1.5rem', marginRight: '-1.5rem', paddingLeft: '1.5rem', paddingRight: '1.5rem' }}>
+              <div style={{ minWidth: '700px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 72px 1fr 32px', gap: '0.5rem', padding: '0 0.25rem' }}>
+                  {['Destination', 'Mask', 'Next hop', 'AD', 'Description', ''].map(h => (
+                    <span key={h} style={{ fontSize: '0.6875rem', color: 'var(--text-3)', fontWeight: 500 }}>{h}</span>
+                  ))}
                 </div>
                 {routes.map(rt => (
-                  <div key={rt.id} className="grid grid-cols-[1fr_1fr_1fr_72px_1fr_32px] gap-2 items-center">
-                    <input className={inp} value={rt.destination} onChange={e => updRoute(rt.id, 'destination', e.target.value)} placeholder="0.0.0.0"      spellCheck={false} />
-                    <input className={inp} value={rt.mask}        onChange={e => updRoute(rt.id, 'mask',        e.target.value)} placeholder="0.0.0.0"      spellCheck={false} />
-                    <input className={inp} value={rt.nextHop}     onChange={e => updRoute(rt.id, 'nextHop',     e.target.value)} placeholder="10.0.0.1"     spellCheck={false} />
+                  <div key={rt.id} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 72px 1fr 32px', gap: '0.5rem', alignItems: 'center' }}>
+                    <input className={inp} value={rt.destination} onChange={e => updRoute(rt.id, 'destination', e.target.value)} placeholder="0.0.0.0" spellCheck={false} />
+                    <input className={inp} value={rt.mask}        onChange={e => updRoute(rt.id, 'mask',        e.target.value)} placeholder="0.0.0.0" spellCheck={false} />
+                    <input className={inp} value={rt.nextHop}     onChange={e => updRoute(rt.id, 'nextHop',     e.target.value)} placeholder="10.0.0.1" spellCheck={false} />
                     <input className={inp} value={rt.dist}        onChange={e => updRoute(rt.id, 'dist',        e.target.value)} placeholder="—" type="number" min={1} max={255} />
                     <input className={inp} value={rt.desc}        onChange={e => updRoute(rt.id, 'desc',        e.target.value)} placeholder="optional" />
                     <RemoveBtn onClick={() => rmRoute(rt.id)} disabled={routes.length === 1} />
@@ -387,52 +389,45 @@ export default function CiscoScriptGen() {
           </>
         )}
 
-        {/* acl-extended ────────────────────────────────────────────── */}
+        {/* acl-extended */}
         {tab === 'acl-extended' && (
           <>
             <p className="section-label">Extended access list</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
               <div>
                 <FL text="ACL name or number (100–199 for numbered extended)" />
-                <input className={inp} value={aclName} onChange={e => setAclName(e.target.value)}
-                  placeholder="INTERNET-ACCESS or 110" spellCheck={false} />
+                <input className={inp} value={aclName} onChange={e => setAclName(e.target.value)} placeholder="INTERNET-ACCESS or 110" spellCheck={false} />
               </div>
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-2">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                 <p className="section-label">Access rules</p>
                 <AddBtn onClick={addRule} label="+ Add rule" />
               </div>
-              <div className="overflow-x-auto -mx-6 px-6">
-                <div className="min-w-[860px] space-y-2">
-                  <div className="grid grid-cols-[72px_80px_1fr_1fr_110px_1fr_32px] gap-2 text-xs text-[#868e96] font-medium px-1">
-                    <span>Action</span><span>Protocol</span><span>Source</span>
-                    <span>Destination</span><span>Dst port</span><span>Remark</span><span />
+              <div style={{ overflowX: 'auto', marginLeft: '-1.5rem', marginRight: '-1.5rem', paddingLeft: '1.5rem', paddingRight: '1.5rem' }}>
+                <div style={{ minWidth: '860px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '72px 80px 1fr 1fr 110px 1fr 32px', gap: '0.5rem', padding: '0 0.25rem' }}>
+                    {['Action', 'Protocol', 'Source', 'Destination', 'Dst port', 'Remark', ''].map(h => (
+                      <span key={h} style={{ fontSize: '0.6875rem', color: 'var(--text-3)', fontWeight: 500 }}>{h}</span>
+                    ))}
                   </div>
                   {aclRules.map(rule => {
                     const noPort = rule.protocol === 'ip' || rule.protocol === 'icmp';
                     return (
-                      <div key={rule.id} className="grid grid-cols-[72px_80px_1fr_1fr_110px_1fr_32px] gap-2 items-center">
-                        <select className={inp} value={rule.action}   onChange={e => updRule(rule.id, 'action',   e.target.value)}>
-                          <option value="permit">permit</option>
-                          <option value="deny">deny</option>
-                        </select>
-                        <select className={inp} value={rule.protocol} onChange={e => updRule(rule.id, 'protocol', e.target.value)}>
-                          <option value="ip">ip</option>
-                          <option value="tcp">tcp</option>
-                          <option value="udp">udp</option>
-                          <option value="icmp">icmp</option>
-                        </select>
+                      <div key={rule.id} style={{ display: 'grid', gridTemplateColumns: '72px 80px 1fr 1fr 110px 1fr 32px', gap: '0.5rem', alignItems: 'center' }}>
+                        <select className={inp} value={rule.action}   onChange={e => updRule(rule.id, 'action',   e.target.value)}><option value="permit">permit</option><option value="deny">deny</option></select>
+                        <select className={inp} value={rule.protocol} onChange={e => updRule(rule.id, 'protocol', e.target.value)}><option value="ip">ip</option><option value="tcp">tcp</option><option value="udp">udp</option><option value="icmp">icmp</option></select>
                         <input className={inp} value={rule.source}      onChange={e => updRule(rule.id, 'source',      e.target.value)} placeholder="any" spellCheck={false} />
                         <input className={inp} value={rule.destination} onChange={e => updRule(rule.id, 'destination', e.target.value)} placeholder="any" spellCheck={false} />
                         <input
-                          className={`${inp} ${noPort ? 'opacity-40 cursor-not-allowed' : ''}`}
+                          className={inp}
                           value={rule.port}
                           onChange={e => updRule(rule.id, 'port', e.target.value)}
                           placeholder="eq 80"
                           spellCheck={false}
                           disabled={noPort}
+                          style={{ opacity: noPort ? 0.4 : 1, cursor: noPort ? 'not-allowed' : undefined }}
                         />
                         <input className={inp} value={rule.remark} onChange={e => updRule(rule.id, 'remark', e.target.value)} placeholder="optional" />
                         <RemoveBtn onClick={() => rmRule(rule.id)} disabled={aclRules.length === 1} />
@@ -444,61 +439,100 @@ export default function CiscoScriptGen() {
             </div>
 
             <div>
-              <FL text="Apply to interface (optional — leave interface blank to skip)" />
-              <div className="grid grid-cols-1 sm:grid-cols-[1fr_100px] gap-2">
-                <input className={inp} value={aclAppIface} onChange={e => setAclAppIface(e.target.value)}
-                  placeholder="GigabitEthernet0/0" spellCheck={false} />
-                <select className={inp} value={aclAppDir} onChange={e => setAclAppDir(e.target.value as 'in' | 'out')}>
-                  <option value="in">in</option>
-                  <option value="out">out</option>
-                </select>
+              <FL text="Apply to interface (optional — leave blank to skip)" />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px', gap: '0.5rem' }}>
+                <input className={inp} value={aclAppIface} onChange={e => setAclAppIface(e.target.value)} placeholder="GigabitEthernet0/0" spellCheck={false} />
+                <select className={inp} value={aclAppDir} onChange={e => setAclAppDir(e.target.value as 'in' | 'out')}><option value="in">in</option><option value="out">out</option></select>
               </div>
             </div>
           </>
         )}
 
-        <div className="pt-2 border-t border-surface-100 flex justify-end">
+        <div style={{ paddingTop: '0.75rem', borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'flex-end' }}>
           <button onClick={generate} className="btn-primary">
             Generate Script
           </button>
         </div>
       </div>
 
-      {/* ── Error ────────────────────────────────────────────────────── */}
+      {/* Error */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg" role="alert">
+        <div
+          role="alert"
+          style={{
+            backgroundColor: 'var(--error-subtle)',
+            border: '1px solid var(--error)',
+            color: 'var(--error)',
+            fontSize: '0.875rem',
+            padding: '0.875rem 1rem',
+            borderRadius: '12px',
+          }}
+        >
           {error}
         </div>
       )}
 
-      {/* ── Warnings ──────────────────────────────────────────────────── */}
+      {/* Warnings */}
       {result?.warnings.map((w, i) => (
-        <div key={i} className="flex items-start gap-2 bg-amber-50 border border-amber-200 text-amber-800 text-sm px-4 py-3 rounded-lg">
-          <span className="shrink-0 mt-px">⚠</span>
+        <div
+          key={i}
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '0.5rem',
+            backgroundColor: 'var(--warning-subtle)',
+            border: '1px solid var(--warning)',
+            color: 'var(--warning)',
+            fontSize: '0.875rem',
+            padding: '0.875rem 1rem',
+            borderRadius: '12px',
+          }}
+        >
+          <span style={{ flexShrink: 0, marginTop: '1px' }}>⚠</span>
           <span>{w}</span>
         </div>
       ))}
 
-      {/* ── Output terminal ───────────────────────────────────────────── */}
+      {/* Output terminal */}
       {result && (
         <div className="tool-card">
-          <div className="flex items-start justify-between mb-3 gap-4">
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.875rem', gap: '1rem' }}>
             <div>
               <p className="section-label">{result.title}</p>
-              <p className="text-xs text-[#868e96] mt-0.5">{result.commandCount} IOS commands</p>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-3)', marginTop: '0.25rem' }}>{result.commandCount} IOS commands</p>
             </div>
             <button
               onClick={copyScript}
-              className={`shrink-0 text-sm font-medium px-4 py-2 rounded-lg transition-colors ${
-                copied
-                  ? 'bg-green-100 text-green-700'
-                  : 'bg-surface-100 text-[#495057] hover:bg-surface-200'
-              }`}
+              style={{
+                flexShrink: 0,
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                padding: '0.5rem 1rem',
+                borderRadius: '8px',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'background-color 150ms ease',
+                backgroundColor: copied ? 'var(--success-subtle)' : 'var(--surface-shell)',
+                color:           copied ? 'var(--success)'        : 'var(--text-2)',
+              }}
             >
               {copied ? 'Copied!' : 'Copy to clipboard'}
             </button>
           </div>
-          <pre className="bg-[#1a1b1e] rounded-lg p-4 overflow-auto max-h-[520px] text-xs font-mono leading-relaxed select-all">
+          <pre
+            style={{
+              backgroundColor: 'oklch(13% 0.016 250)',
+              borderRadius: '12px',
+              padding: '1rem 1.25rem',
+              overflowX: 'auto',
+              maxHeight: '520px',
+              fontSize: '0.75rem',
+              fontFamily: "'JetBrains Mono', monospace",
+              lineHeight: 1.7,
+              userSelect: 'all',
+              margin: 0,
+            }}
+          >
             {result.script.split('\n').map((line, i) => (
               <TerminalLine key={i} line={line} index={i} />
             ))}
@@ -507,7 +541,7 @@ export default function CiscoScriptGen() {
       )}
 
       {!result && !error && (
-        <p className="text-sm text-[#868e96] text-center py-4">
+        <p style={{ fontSize: '0.875rem', color: 'var(--text-3)', textAlign: 'center', padding: '1rem 0' }}>
           Configure the parameters above and click Generate Script
         </p>
       )}

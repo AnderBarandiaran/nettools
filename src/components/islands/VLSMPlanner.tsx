@@ -47,53 +47,67 @@ export default function VLSMPlanner() {
     }
   }, [parentBlock, rows]);
 
-  const utilizationColor = (pct: number) =>
-    pct >= 80 ? 'text-green-700 bg-green-50' :
-    pct >= 50 ? 'text-amber-700 bg-amber-50' :
-    'text-red-700 bg-red-50';
+  const utilizationStyle = (pct: number) => ({
+    color:           pct >= 80 ? 'var(--success)' : pct >= 50 ? 'var(--warning)' : 'var(--error)',
+    backgroundColor: pct >= 80 ? 'var(--success-subtle)' : pct >= 50 ? 'var(--warning-subtle)' : 'var(--error-subtle)',
+  });
 
   return (
-    <div className="space-y-6">
-      {/* Bloque padre */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
+      {/* Parent block input */}
       <div className="tool-card">
-        <p className="section-label mb-3">Parent network block</p>
-        <div className="flex gap-3">
+        <p className="section-label" style={{ marginBottom: '0.75rem' }}>Parent network block</p>
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
           <input
             type="text"
             value={parentBlock}
             onChange={e => setParentBlock(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && calculate()}
             placeholder="192.168.1.0/24"
-            className="input-field flex-1"
+            className="input-field"
+            style={{ flex: 1 }}
             aria-label="Parent network block CIDR"
             spellCheck={false}
           />
-          <button onClick={calculate} className="btn-primary whitespace-nowrap">
+          <button onClick={calculate} className="btn-primary">
             Plan VLSM
           </button>
         </div>
       </div>
 
-      {/* Tabla de requerimientos */}
+      {/* Requirements table */}
       <div className="tool-card">
-        <div className="flex items-center justify-between mb-3">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
           <p className="section-label">Subnet requirements</p>
           <button
             onClick={addRow}
-            className="text-xs font-medium text-brand-600 hover:text-brand-700"
             aria-label="Add requirement row"
+            style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
           >
             + Add row
           </button>
         </div>
-        <div className="space-y-2">
-          <div className="grid grid-cols-[1fr_120px_32px] gap-2 text-xs text-[#868e96] font-medium px-1">
-            <span>Subnet name</span>
-            <span>Hosts needed</span>
-            <span></span>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 120px 32px',
+              gap: '0.5rem',
+              padding: '0 0.25rem',
+            }}
+          >
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-3)', fontWeight: 500 }}>Subnet name</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-3)', fontWeight: 500 }}>Hosts needed</span>
+            <span />
           </div>
+
           {rows.map(row => (
-            <div key={row.id} className="grid grid-cols-[1fr_120px_32px] gap-2 items-center">
+            <div
+              key={row.id}
+              style={{ display: 'grid', gridTemplateColumns: '1fr 120px 32px', gap: '0.5rem', alignItems: 'center' }}
+            >
               <input
                 type="text"
                 value={row.name}
@@ -114,9 +128,23 @@ export default function VLSMPlanner() {
               />
               <button
                 onClick={() => removeRow(row.id)}
-                className="h-9 w-8 flex items-center justify-center text-[#adb5bd] hover:text-red-500 transition-colors rounded"
-                aria-label="Remove row"
                 disabled={rows.length === 1}
+                aria-label="Remove row"
+                style={{
+                  height: '36px',
+                  width: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--text-3)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: rows.length === 1 ? 'not-allowed' : 'pointer',
+                  borderRadius: '6px',
+                  fontSize: '1.125rem',
+                  transition: 'color 150ms ease',
+                  opacity: rows.length === 1 ? 0.3 : 1,
+                }}
               >
                 ×
               </button>
@@ -125,68 +153,125 @@ export default function VLSMPlanner() {
         </div>
       </div>
 
+      {/* Error */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg" role="alert">
+        <div
+          role="alert"
+          style={{
+            backgroundColor: 'var(--error-subtle)',
+            border: '1px solid var(--error)',
+            color: 'var(--error)',
+            fontSize: '0.875rem',
+            padding: '0.875rem 1rem',
+            borderRadius: '12px',
+          }}
+        >
           {error}
         </div>
       )}
 
-      {/* Resultados */}
+      {/* Results */}
       {plan && (
         <>
-          {/* Resumen */}
+          {/* Plan summary */}
           <div className="tool-card">
-            <div className="flex items-center gap-3 mb-4">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
               <p className="section-label">Plan summary</p>
-              {!plan.fits && (
-                <span className="text-xs font-medium bg-red-100 text-red-700 px-2 py-0.5 rounded-full">
-                  Does not fit — partial plan
-                </span>
-              )}
-              {plan.fits && (
-                <span className="text-xs font-medium bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-                  All subnets allocated
-                </span>
-              )}
+              <span
+                style={{
+                  fontSize: '0.6875rem',
+                  fontWeight: 600,
+                  padding: '0.25rem 0.625rem',
+                  borderRadius: '9999px',
+                  backgroundColor: plan.fits ? 'var(--success-subtle)' : 'var(--error-subtle)',
+                  color: plan.fits ? 'var(--success)' : 'var(--error)',
+                }}
+              >
+                {plan.fits ? 'All subnets allocated' : 'Does not fit — partial plan'}
+              </span>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }} className="sm-4col">
               {[
-                { label: 'Required hosts', value: plan.totalRequiredHosts.toLocaleString() },
+                { label: 'Required hosts',  value: plan.totalRequiredHosts.toLocaleString() },
                 { label: 'Allocated hosts', value: plan.totalUsableHosts.toLocaleString() },
-                { label: 'Wasted hosts', value: plan.totalWastedHosts.toLocaleString() },
+                { label: 'Wasted hosts',    value: plan.totalWastedHosts.toLocaleString() },
                 { label: 'Remaining space', value: `${plan.remainingAddresses} addrs` },
               ].map(stat => (
-                <div key={stat.label} className="bg-surface-50 rounded-lg p-3">
-                  <p className="text-xs text-[#868e96] mb-1">{stat.label}</p>
-                  <p className="font-mono font-semibold text-[#1a1b1e]">{stat.value}</p>
+                <div
+                  key={stat.label}
+                  style={{
+                    backgroundColor: 'var(--canvas)',
+                    border: '1px solid var(--border-subtle)',
+                    borderRadius: '10px',
+                    padding: '0.875rem',
+                  }}
+                >
+                  <p style={{ fontSize: '0.6875rem', color: 'var(--text-3)', marginBottom: '0.375rem' }}>{stat.label}</p>
+                  <p style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 600, color: 'var(--text-1)' }}>{stat.value}</p>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Tabla de asignaciones */}
-          <div className="tool-card overflow-x-auto">
-            <p className="section-label mb-3">Allocation table</p>
-            <table className="w-full text-sm">
+          {/* Allocation table */}
+          <div className="tool-card" style={{ overflowX: 'auto' }}>
+            <p className="section-label" style={{ marginBottom: '0.75rem' }}>Allocation table</p>
+            <table style={{ width: '100%', fontSize: '0.875rem', borderCollapse: 'collapse' }}>
               <thead>
-                <tr className="border-b border-surface-200">
+                <tr style={{ borderBottom: `1px solid var(--border)` }}>
                   {['Subnet', 'Network', 'Mask', 'First host', 'Last host', 'Hosts req.', 'Usable', 'Util.'].map(h => (
-                    <th key={h} className="text-left text-xs text-[#868e96] font-medium pb-2 pr-4 whitespace-nowrap">{h}</th>
+                    <th
+                      key={h}
+                      style={{
+                        textAlign: 'left',
+                        fontSize: '0.6875rem',
+                        color: 'var(--text-3)',
+                        fontWeight: 600,
+                        paddingBottom: '0.625rem',
+                        paddingRight: '1rem',
+                        whiteSpace: 'nowrap',
+                        letterSpacing: '0.04em',
+                      }}
+                    >
+                      {h}
+                    </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {plan.allocations.map((alloc, i) => (
-                  <tr key={i} className="border-b border-surface-100 last:border-0">
-                    <td className="py-2.5 pr-4 font-medium text-[#1a1b1e]">{alloc.requirement.name}</td>
-                    <td className="py-2.5 pr-4 font-mono text-xs">{alloc.subnet.networkAddress}/{alloc.prefix}</td>
-                    <td className="py-2.5 pr-4 font-mono text-xs">{alloc.subnet.subnetMask}</td>
-                    <td className="py-2.5 pr-4 font-mono text-xs">{alloc.subnet.firstHost}</td>
-                    <td className="py-2.5 pr-4 font-mono text-xs">{alloc.subnet.lastHost}</td>
-                    <td className="py-2.5 pr-4 text-center">{alloc.requirement.requiredHosts}</td>
-                    <td className="py-2.5 pr-4 text-center">{alloc.subnet.usableHosts}</td>
-                    <td className="py-2.5">
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${utilizationColor(alloc.utilizationPct)}`}>
+                  <tr key={i} style={{ borderBottom: `1px solid var(--border-subtle)` }}>
+                    <td style={{ padding: '0.625rem 1rem 0.625rem 0', fontWeight: 500, color: 'var(--text-1)', whiteSpace: 'nowrap' }}>
+                      {alloc.requirement.name}
+                    </td>
+                    <td style={{ padding: '0.625rem 1rem 0.625rem 0', fontFamily: "'JetBrains Mono', monospace", fontSize: '0.8125rem', color: 'var(--accent-text)', whiteSpace: 'nowrap' }}>
+                      {alloc.subnet.networkAddress}/{alloc.prefix}
+                    </td>
+                    <td style={{ padding: '0.625rem 1rem 0.625rem 0', fontFamily: "'JetBrains Mono', monospace", fontSize: '0.8125rem', color: 'var(--text-2)', whiteSpace: 'nowrap' }}>
+                      {alloc.subnet.subnetMask}
+                    </td>
+                    <td style={{ padding: '0.625rem 1rem 0.625rem 0', fontFamily: "'JetBrains Mono', monospace", fontSize: '0.8125rem', color: 'var(--text-2)', whiteSpace: 'nowrap' }}>
+                      {alloc.subnet.firstHost}
+                    </td>
+                    <td style={{ padding: '0.625rem 1rem 0.625rem 0', fontFamily: "'JetBrains Mono', monospace", fontSize: '0.8125rem', color: 'var(--text-2)', whiteSpace: 'nowrap' }}>
+                      {alloc.subnet.lastHost}
+                    </td>
+                    <td style={{ padding: '0.625rem 1rem 0.625rem 0', textAlign: 'center', color: 'var(--text-2)' }}>
+                      {alloc.requirement.requiredHosts}
+                    </td>
+                    <td style={{ padding: '0.625rem 1rem 0.625rem 0', textAlign: 'center', color: 'var(--text-2)' }}>
+                      {alloc.subnet.usableHosts}
+                    </td>
+                    <td style={{ padding: '0.625rem 0' }}>
+                      <span
+                        style={{
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          padding: '0.2rem 0.5rem',
+                          borderRadius: '9999px',
+                          ...utilizationStyle(alloc.utilizationPct),
+                        }}
+                      >
                         {alloc.utilizationPct}%
                       </span>
                     </td>
@@ -199,7 +284,7 @@ export default function VLSMPlanner() {
       )}
 
       {!plan && !error && (
-        <p className="text-sm text-[#868e96] text-center py-4">
+        <p style={{ fontSize: '0.875rem', color: 'var(--text-3)', textAlign: 'center', padding: '1rem 0' }}>
           Fill in the requirements and click Plan VLSM
         </p>
       )}

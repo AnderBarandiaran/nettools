@@ -27,6 +27,12 @@ const jsonLd = {
     "url": Astro.url.origin,
   },
 };
+
+const pubDate = article.data.pubDate.toLocaleDateString('en-US', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+});
 ---
 
 <BaseLayout
@@ -35,43 +41,227 @@ const jsonLd = {
   ogType="article"
   jsonLd={jsonLd}
 >
-  <nav class="max-w-3xl mx-auto px-4 pt-6 pb-2" aria-label="Breadcrumb">
-    <ol class="flex items-center gap-2 text-sm text-[#868e96]">
-      <li><a href="/" class="hover:text-brand-600">Home</a></li>
-      <li aria-hidden="true">/</li>
-      <li><a href="/articles/" class="hover:text-brand-600">Articles</a></li>
-      <li aria-hidden="true">/</li>
-      <li class="text-[#1a1b1e] font-medium truncate max-w-[200px]">{article.data.title}</li>
+
+  <!-- Breadcrumb -->
+  <nav class="max-w-[72ch] mx-auto px-4 pt-8 pb-2" aria-label="Breadcrumb">
+    <ol style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8125rem; color: var(--text-3); list-style: none; margin: 0; padding: 0;">
+      <li><a href="/" style="color: var(--text-3); text-decoration: none; transition: color 150ms ease;" onmouseover="this.style.color='var(--text-1)'" onmouseout="this.style.color='var(--text-3)'">Home</a></li>
+      <li aria-hidden="true" style="color: var(--border);">/</li>
+      <li><a href="/articles/" style="color: var(--text-3); text-decoration: none; transition: color 150ms ease;" onmouseover="this.style.color='var(--text-1)'" onmouseout="this.style.color='var(--text-3)'">Articles</a></li>
+      <li aria-hidden="true" style="color: var(--border);">/</li>
+      <li style="color: var(--text-2); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+        {article.data.title}
+      </li>
     </ol>
   </nav>
 
-  <div class="flex justify-center py-6">
+  <!-- Ad leaderboard -->
+  <div style="display: flex; justify-content: center; padding: 1.5rem 1rem;">
     <AdSlot slot="leaderboard" />
   </div>
 
-  <article class="max-w-3xl mx-auto px-4 pb-8">
-    <header class="mb-8">
-      <div class="flex items-center gap-2 mb-3">
-        <span class="section-label">{article.data.category}</span>
-        <span class="text-xs text-[#868e96]">
-          {article.data.pubDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+  <!-- Article -->
+  <article class="max-w-[72ch] mx-auto px-4 pb-16">
+
+    <!-- Header -->
+    <header style="margin-bottom: 2.5rem;">
+      <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem; flex-wrap: wrap;">
+        <span
+          style="
+            font-size: 0.6875rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--accent-text);
+            background-color: var(--accent-subtle);
+            padding: 0.25rem 0.625rem;
+            border-radius: 4px;
+          "
+        >
+          {article.data.category}
         </span>
+        <span style="font-size: 0.8125rem; color: var(--text-3);">{pubDate}</span>
+        {article.data.readingTime && (
+          <span style="font-size: 0.8125rem; color: var(--text-3);">· {article.data.readingTime} min read</span>
+        )}
       </div>
-      <h1 class="text-3xl sm:text-4xl font-bold text-[#1a1b1e] leading-tight">
+
+      <!-- Instrument Serif headline -->
+      <h1
+        class="font-serif-display"
+        style="
+          font-size: clamp(1.875rem, 4vw, 2.75rem);
+          color: var(--text-1);
+          line-height: 1.1;
+          margin-bottom: 1rem;
+        "
+      >
         {article.data.title}
       </h1>
+
+      <p style="font-size: 1.0625rem; color: var(--text-2); line-height: 1.6; max-width: 60ch;">
+        {article.data.description}
+      </p>
     </header>
 
-    <div class="flex justify-center mb-8">
+    <!-- Inline ad -->
+    <div style="display: flex; justify-content: center; margin-bottom: 2.5rem;">
       <AdSlot slot="rectangle" />
     </div>
 
-    <div class="prose prose-slate max-w-none">
+    <!-- Prose content — reading typography -->
+    <div class="prose-article">
       <Content />
     </div>
 
-    <div class="flex justify-center mt-8">
+    <!-- Bottom ad -->
+    <div style="display: flex; justify-content: center; margin-top: 3rem;">
       <AdSlot slot="rectangle" />
     </div>
+
+    <!-- Back link -->
+    <div style="margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border-subtle);">
+      <a
+        href="/articles/"
+        style="
+          display: inline-flex;
+          align-items: center;
+          gap: 0.375rem;
+          font-size: 0.875rem;
+          color: var(--text-2);
+          text-decoration: none;
+          transition: color 150ms ease;
+        "
+        onmouseover="this.style.color='var(--text-1)'"
+        onmouseout="this.style.color='var(--text-2)'"
+      >
+        ← All articles
+      </a>
+    </div>
+
   </article>
+
 </BaseLayout>
+
+<style>
+  /* Reading prose — refined typography at 68ch */
+  .prose-article {
+    color: var(--text-1);
+    font-size: 1rem;
+    line-height: 1.75;
+    max-width: 68ch;
+  }
+
+  .prose-article h2 {
+    font-family: 'Geist', 'Helvetica Neue', system-ui, sans-serif;
+    font-size: 1.375rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--text-1);
+    margin-top: 2.5rem;
+    margin-bottom: 0.875rem;
+    line-height: 1.3;
+  }
+
+  .prose-article h3 {
+    font-family: 'Geist', 'Helvetica Neue', system-ui, sans-serif;
+    font-size: 1.0625rem;
+    font-weight: 600;
+    color: var(--text-1);
+    margin-top: 1.875rem;
+    margin-bottom: 0.625rem;
+  }
+
+  .prose-article p {
+    color: var(--text-2);
+    margin-bottom: 1.25rem;
+  }
+
+  .prose-article code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85em;
+    background-color: var(--surface-shell);
+    color: var(--accent-text);
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    border: 1px solid var(--border-subtle);
+  }
+
+  .prose-article pre {
+    background-color: oklch(13% 0.016 150);
+    border: 1px solid oklch(28% 0.06 150);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    overflow-x: auto;
+    margin: 1.5rem 0;
+  }
+
+  .prose-article pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    color: oklch(78% 0.10 150);
+    font-size: 0.875rem;
+  }
+
+  .prose-article table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    margin: 1.5rem 0;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .prose-article thead {
+    background-color: var(--surface-shell);
+  }
+
+  .prose-article th {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .prose-article td {
+    padding: 0.75rem 1rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.875rem;
+    color: var(--text-1);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .prose-article tr:last-child td {
+    border-bottom: none;
+  }
+
+  .prose-article ul,
+  .prose-article ol {
+    padding-left: 1.5rem;
+    margin-bottom: 1.25rem;
+    color: var(--text-2);
+  }
+
+  .prose-article li {
+    margin-bottom: 0.375rem;
+  }
+
+  .prose-article strong {
+    color: var(--text-1);
+    font-weight: 600;
+  }
+
+  .prose-article blockquote {
+    border-left: 2px solid var(--border);
+    padding-left: 1.25rem;
+    color: var(--text-3);
+    font-style: italic;
+    margin: 1.5rem 0;
+  }
+</style>

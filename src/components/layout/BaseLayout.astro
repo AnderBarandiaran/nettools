@@ -1,5 +1,6 @@
 ---
 import '../../styles/global.css';
+import ThemeToggle from '../ThemeToggle';
 
 export interface Props {
   title: string;
@@ -31,13 +32,21 @@ const ogImage = new URL('/og-default.png', Astro.url.origin).href;
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#3b5bdb" />
 
-  <!-- SEO primario -->
+  <!-- FOUC prevention: apply theme before paint -->
+  <script is:inline>
+    (function () {
+      var saved = localStorage.getItem('nt-theme');
+      var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var theme = saved || (prefersDark ? 'dark' : 'light');
+      document.documentElement.classList.toggle('dark', theme === 'dark');
+    })();
+  </script>
+
   <title>{fullTitle}</title>
   <meta name="description" content={description} />
   <link rel="canonical" href={canonicalUrl} />
   {noindex && <meta name="robots" content="noindex,nofollow" />}
 
-  <!-- Open Graph -->
   <meta property="og:type" content={ogType} />
   <meta property="og:title" content={fullTitle} />
   <meta property="og:description" content={description} />
@@ -45,54 +54,190 @@ const ogImage = new URL('/og-default.png', Astro.url.origin).href;
   <meta property="og:site_name" content={siteName} />
   <meta property="og:image" content={ogImage} />
 
-  <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content={fullTitle} />
   <meta name="twitter:description" content={description} />
   <meta name="twitter:image" content={ogImage} />
 
-  <!-- JSON-LD estructurado -->
   {jsonLd && (
     <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
   )}
 
-  <!-- Preconnect fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-
-  <!-- Favicon placeholder -->
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 </head>
 <body>
-  <header class="border-b border-surface-200 bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-    <nav class="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
-      <a href="/" class="font-bold text-brand-700 text-lg tracking-tight">
-        NetTools
-      </a>
-      <ul class="flex items-center gap-6 text-sm font-medium text-[#495057]">
-        <li><a href="/subnetting/" class="hover:text-brand-600 transition-colors">Subnet Calc</a></li>
-        <li><a href="/subnetting/vlsm/" class="hover:text-brand-600 transition-colors">VLSM</a></li>
-        <li><a href="/cisco-scripts/" class="hover:text-brand-600 transition-colors">Cisco Scripts</a></li>
-        <li><a href="/topology/" class="hover:text-brand-600 transition-colors">Topology</a></li>
-        <li><a href="/articles/" class="hover:text-brand-600 transition-colors">Articles</a></li>
-      </ul>
-    </nav>
-  </header>
+
+  <!-- Floating pill nav -->
+  <div class="sticky top-0 z-50 px-4 pt-3 pb-1 pointer-events-none">
+    <div class="max-w-6xl mx-auto pointer-events-auto">
+      <div
+        style="
+          background-color: var(--surface-shell);
+          border: 1px solid var(--border);
+          border-radius: 20px;
+          padding: 5px;
+          box-shadow: var(--shadow-nav);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+        "
+      >
+        <nav
+          style="
+            background-color: var(--surface);
+            border-radius: 16px;
+            box-shadow: inset 0 1px 0 oklch(100% 0 0 / 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem 1.25rem;
+            gap: 1rem;
+          "
+          aria-label="Main navigation"
+        >
+          <!-- Logo -->
+          <a
+            href="/"
+            style="
+              font-weight: 700;
+              font-size: 0.9375rem;
+              color: var(--text-1);
+              text-decoration: none;
+              letter-spacing: -0.025em;
+              flex-shrink: 0;
+            "
+          >
+            NetTools
+          </a>
+
+          <!-- Nav links — scrollable on small screens -->
+          <ul
+            style="
+              display: flex;
+              align-items: center;
+              gap: 0.125rem;
+              margin: 0;
+              padding: 0;
+              list-style: none;
+              overflow-x: auto;
+              flex: 1;
+              scrollbar-width: none;
+            "
+          >
+            {[
+              { href: '/subnetting/', label: 'Subnet Calc' },
+              { href: '/subnetting/vlsm/', label: 'VLSM' },
+              { href: '/cisco-scripts/', label: 'Cisco Scripts' },
+              { href: '/topology/', label: 'Topology' },
+              { href: '/articles/', label: 'Articles' },
+            ].map(link => (
+              <li>
+                <a
+                  href={link.href}
+                  style="
+                    display: block;
+                    padding: 0.375rem 0.75rem;
+                    border-radius: 10px;
+                    font-size: 0.8125rem;
+                    font-weight: 500;
+                    color: var(--text-2);
+                    text-decoration: none;
+                    white-space: nowrap;
+                    transition: color 150ms ease, background-color 150ms ease;
+                  "
+                  onmouseover="this.style.color='var(--text-1)'; this.style.backgroundColor='var(--surface-shell)'"
+                  onmouseout="this.style.color='var(--text-2)'; this.style.backgroundColor='transparent'"
+                >
+                  {link.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+
+          <!-- Theme toggle -->
+          <ThemeToggle client:load />
+        </nav>
+      </div>
+    </div>
+  </div>
 
   <main>
     <slot />
   </main>
 
-  <footer class="border-t border-surface-200 mt-16 py-8">
-    <div class="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-[#868e96]">
-      <p>© {new Date().getFullYear()} NetTools. Built for network engineers.</p>
-      <nav class="flex items-center gap-6">
-        <a href="/about/" class="hover:text-brand-600 transition-colors">About</a>
-        <a href="/privacy/" class="hover:text-brand-600 transition-colors">Privacy</a>
-        <a href="/articles/" class="hover:text-brand-600 transition-colors">Articles</a>
-        <a href="https://github.com/AnderBarandiaran/nettools" class="hover:text-brand-600 transition-colors">GitHub</a>
-      </nav>
+  <footer style="border-top: 1px solid var(--border); margin-top: 5rem; padding: 3rem 0;">
+    <div class="max-w-6xl mx-auto px-4">
+      <div style="display: flex; flex-direction: column; gap: 2rem;">
+        <!-- Top row -->
+        <div style="display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 2rem;">
+          <div>
+            <p style="font-weight: 700; font-size: 0.9375rem; color: var(--text-1); letter-spacing: -0.02em; margin-bottom: 0.5rem;">
+              NetTools
+            </p>
+            <p style="font-size: 0.8125rem; color: var(--text-3); max-width: 28ch; line-height: 1.6;">
+              Free professional tools for network engineers. No login required.
+            </p>
+          </div>
+          <nav aria-label="Footer navigation" style="display: flex; flex-wrap: wrap; gap: 0.375rem;">
+            {[
+              { href: '/subnetting/', label: 'Subnet Calculator' },
+              { href: '/subnetting/vlsm/', label: 'VLSM Planner' },
+              { href: '/cisco-scripts/', label: 'Cisco Scripts' },
+              { href: '/topology/', label: 'Topology' },
+              { href: '/articles/', label: 'Articles' },
+              { href: '/about/', label: 'About' },
+              { href: '/privacy/', label: 'Privacy' },
+              { href: 'https://github.com/AnderBarandiaran/nettools', label: 'GitHub' },
+            ].map(link => (
+              <a
+                href={link.href}
+                style="
+                  display: block;
+                  padding: 0.3125rem 0.75rem;
+                  border: 1px solid var(--border);
+                  border-radius: 9999px;
+                  font-size: 0.75rem;
+                  color: var(--text-2);
+                  text-decoration: none;
+                  transition: color 150ms ease, border-color 150ms ease;
+                "
+                onmouseover="this.style.color='var(--text-1)'; this.style.borderColor='var(--text-3)'"
+                onmouseout="this.style.color='var(--text-2)'; this.style.borderColor='var(--border)'"
+              >
+                {link.label}
+              </a>
+            ))}
+          </nav>
+        </div>
+
+        <!-- Bottom row -->
+        <div style="border-top: 1px solid var(--border-subtle); padding-top: 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+          <p style="font-size: 0.75rem; color: var(--text-3);">
+            © {new Date().getFullYear()} NetTools. Built for network engineers.
+          </p>
+          <p style="font-size: 0.75rem; color: var(--text-3);">
+            Zero data collection. Runs entirely in your browser.
+          </p>
+        </div>
+      </div>
     </div>
   </footer>
+
+  <!-- Scroll entry IntersectionObserver -->
+  <script>
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('in-view');
+            io.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.08, rootMargin: '0px 0px -40px 0px' }
+    );
+    document.querySelectorAll('.scroll-entry').forEach((el) => io.observe(el));
+  </script>
 </body>
 </html>

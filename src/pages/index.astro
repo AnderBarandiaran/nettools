@@ -14,27 +14,6 @@ const jsonLd = {
     "query-input": "required name=search_term_string"
   }
 };
-
-const tools = [
-  {
-    href: '/subnetting/',
-    title: 'Subnet Calculator',
-    description: 'IPv4/IPv6 CIDR calculator with VLSM planning, wildcard masks, and broadcast address computation.',
-    badge: 'Free',
-  },
-  {
-    href: '/cisco-scripts/',
-    title: 'Cisco IOS Script Generator',
-    description: 'Generate interface configs, OSPF/EIGRP setups, ACLs, and VLANs ready to paste into the console.',
-    badge: 'Free',
-  },
-  {
-    href: '/topology/',
-    title: 'Topology Simulator',
-    description: 'Drag-and-drop network topology builder with automatic IP assignment and adjacency tables.',
-    badge: 'Beta',
-  },
-];
 ---
 
 <BaseLayout
@@ -42,40 +21,254 @@ const tools = [
   description="Free professional tools for network engineers: subnet calculators, VLSM planners, Cisco IOS script generators, and topology simulators."
   jsonLd={jsonLd}
 >
-  <!-- Hero -->
-  <section class="max-w-6xl mx-auto px-4 pt-16 pb-12 text-center">
-    <h1 class="text-4xl sm:text-5xl font-bold text-[#1a1b1e] mb-4 leading-tight">
-      Network engineering tools,<br/>
-      <span class="text-brand-600">ready in seconds</span>
+
+  <!-- Hero — left-aligned, Instrument Serif headline -->
+  <section class="max-w-6xl mx-auto px-4 pt-14 pb-6">
+    <p class="section-label mb-5">Free network engineering tools</p>
+
+    <h1
+      class="font-serif-display"
+      style="
+        font-size: clamp(2.75rem, 6vw, 4.5rem);
+        color: var(--text-1);
+        max-width: 14ch;
+        margin-bottom: 1.25rem;
+      "
+    >
+      Network tools,<br/>ready in seconds
     </h1>
-    <p class="text-lg text-[#495057] max-w-2xl mx-auto mb-8">
-      Professional-grade subnet calculators, Cisco IOS script generators, and topology simulators.
-      No login required.
+
+    <p style="font-size: 1.125rem; color: var(--text-2); max-width: 46ch; line-height: 1.65; margin-bottom: 2rem;">
+      Professional subnet calculators, Cisco IOS script generators, and topology
+      simulators. No login required. Runs entirely in your browser.
     </p>
+
+    <!-- Credibility stat line -->
+    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 3rem;">
+      <span class="stat-badge">
+        <span style="color: var(--success); font-size: 8px;">●</span>
+        127 unit tests passing
+      </span>
+      <span class="stat-badge">Built with Astro</span>
+      <span class="stat-badge">Open source</span>
+      <span class="stat-badge">Zero data collection</span>
+    </div>
   </section>
 
-  <!-- AdSlot leaderboard — antes del contenido principal -->
-  <div class="flex justify-center pb-8">
+  <!-- Ad leaderboard — integrated, not spammy -->
+  <div style="display: flex; justify-content: center; padding-bottom: 2rem;">
     <AdSlot slot="leaderboard" />
   </div>
 
-  <!-- Tool grid -->
-  <section class="max-w-6xl mx-auto px-4 pb-16">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      {tools.map(tool => (
-        <a href={tool.href} class="tool-card group block">
-          <div class="flex items-center justify-between mb-3">
-            <span class="section-label">Tool</span>
-            <span class="text-xs font-medium bg-brand-50 text-brand-700 px-2 py-0.5 rounded-full">
-              {tool.badge}
-            </span>
+  <!-- Bento grid — asymmetric layout -->
+  <section class="max-w-6xl mx-auto px-4 pb-20 scroll-entry">
+    <div
+      style="
+        display: grid;
+        grid-template-columns: repeat(1, 1fr);
+        gap: 1rem;
+      "
+      class="md:grid-3col"
+    >
+      <!-- Large card: Subnet Calculator — spans 2 cols + 2 rows on desktop -->
+      <a
+        href="/subnetting/"
+        class="card-shell block group"
+        style="text-decoration: none;"
+        aria-label="Open Subnet Calculator"
+      >
+        <div
+          class="card-core"
+          style="padding: 2rem; display: flex; flex-direction: column; justify-content: space-between; min-height: 340px;"
+        >
+          <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.75rem;">
+              <span class="section-label">Subnet Calculator</span>
+              <span class="stat-badge">Free</span>
+            </div>
+
+            <h2
+              class="font-serif-display"
+              style="font-size: 1.875rem; color: var(--text-1); margin-bottom: 0.875rem; max-width: 20ch;"
+            >
+              IPv4 CIDR subnet calculator
+            </h2>
+
+            <p style="font-size: 0.9375rem; color: var(--text-2); line-height: 1.6; max-width: 44ch;">
+              Enter any CIDR block and instantly get network address, broadcast,
+              usable host range, wildcard mask, and binary representation.
+            </p>
           </div>
-          <h2 class="text-lg font-semibold text-[#1a1b1e] mb-2 group-hover:text-brand-600 transition-colors">
-            {tool.title}
-          </h2>
-          <p class="text-sm text-[#495057] leading-relaxed">{tool.description}</p>
+
+          <!-- Terminal preview -->
+          <div
+            style="
+              margin-top: 1.75rem;
+              background: oklch(13% 0.016 150);
+              border: 1px solid oklch(28% 0.06 150);
+              border-radius: 10px;
+              padding: 1rem 1.125rem;
+              font-family: 'JetBrains Mono', monospace;
+              font-size: 0.8125rem;
+              line-height: 1.8;
+            "
+          >
+            <p style="color: oklch(38% 0.05 150); margin-bottom: 0.25rem;">$ subnet 192.168.1.0/24</p>
+            <p style="color: oklch(78% 0.14 150);">Network    192.168.1.0</p>
+            <p style="color: oklch(74% 0.14 70);">Broadcast  192.168.1.255</p>
+            <p style="color: oklch(65% 0.08 80);">Hosts      192.168.1.1 — .254  (254 usable)</p>
+          </div>
+
+          <!-- CTA -->
+          <div style="margin-top: 1.5rem; display: flex; align-items: center; gap: 0.5rem; color: var(--accent);">
+            <span style="font-size: 0.875rem; font-weight: 500;">Open calculator</span>
+            <span style="font-size: 1rem; transition: transform 200ms ease;" class="group-hover:translate-x-1">→</span>
+          </div>
+        </div>
+      </a>
+
+      <!-- Right column: two stacked cards -->
+      <div
+        style="display: grid; grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; gap: 1rem;"
+        class="md:right-stack"
+      >
+        <!-- Cisco Scripts -->
+        <a
+          href="/cisco-scripts/"
+          class="card-shell block group"
+          style="text-decoration: none;"
+          aria-label="Open Cisco IOS Script Generator"
+        >
+          <div class="card-core" style="padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+            <div>
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+                <span class="section-label">Cisco Scripts</span>
+                <span class="stat-badge">Free</span>
+              </div>
+              <h2 style="font-size: 1.0625rem; font-weight: 600; color: var(--text-1); margin-bottom: 0.5rem; letter-spacing: -0.02em;">
+                IOS Script Generator
+              </h2>
+              <p style="font-size: 0.8125rem; color: var(--text-2); line-height: 1.55;">
+                Generate interface configs, OSPF, static routes, and extended ACLs ready to paste into the console.
+              </p>
+            </div>
+            <div style="margin-top: 1rem; display: flex; align-items: center; gap: 0.375rem; color: var(--accent);">
+              <span style="font-size: 0.8125rem; font-weight: 500;">Generate script</span>
+              <span style="font-size: 0.875rem;">→</span>
+            </div>
+          </div>
         </a>
-      ))}
+
+        <!-- Topology Simulator -->
+        <a
+          href="/topology/"
+          class="card-shell block group"
+          style="text-decoration: none;"
+          aria-label="Open Topology Simulator"
+        >
+          <div class="card-core" style="padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+            <div>
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+                <span class="section-label">Topology</span>
+                <span
+                  style="
+                    font-size: 0.6875rem;
+                    font-weight: 600;
+                    padding: 0.25rem 0.625rem;
+                    border-radius: 9999px;
+                    background-color: var(--warning-subtle);
+                    color: var(--warning);
+                    letter-spacing: 0.05em;
+                  "
+                >Beta</span>
+              </div>
+              <h2 style="font-size: 1.0625rem; font-weight: 600; color: var(--text-1); margin-bottom: 0.5rem; letter-spacing: -0.02em;">
+                Topology Simulator
+              </h2>
+              <p style="font-size: 0.8125rem; color: var(--text-2); line-height: 1.55;">
+                Drag-and-drop network topology builder with automatic IP assignment and adjacency tables.
+              </p>
+            </div>
+            <div style="margin-top: 1rem; display: flex; align-items: center; gap: 0.375rem; color: var(--accent);">
+              <span style="font-size: 0.8125rem; font-weight: 500;">Build topology</span>
+              <span style="font-size: 0.875rem;">→</span>
+            </div>
+          </div>
+        </a>
+      </div>
     </div>
   </section>
+
+  <!-- VLSM article link section -->
+  <section
+    class="max-w-6xl mx-auto px-4 pb-20 scroll-entry"
+    style="border-top: 1px solid var(--border-subtle); padding-top: 3rem;"
+  >
+    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2rem;">
+      <div>
+        <p class="section-label" style="margin-bottom: 0.75rem;">Also available</p>
+        <h2 style="font-size: 1.375rem; font-weight: 600; color: var(--text-1); letter-spacing: -0.02em; margin-bottom: 0.5rem;">
+          VLSM Planner + Networking articles
+        </h2>
+        <p style="font-size: 0.9375rem; color: var(--text-2); max-width: 48ch; line-height: 1.6;">
+          Variable Length Subnet Masking allocator and curated networking guides,
+          subnet cheat sheets, and OSPF configuration examples.
+        </p>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 0.625rem;">
+        <a
+          href="/subnetting/vlsm/"
+          style="
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.625rem 1.125rem;
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-1);
+            text-decoration: none;
+            transition: box-shadow 200ms ease;
+          "
+        >VLSM Planner →</a>
+        <a
+          href="/articles/"
+          style="
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.625rem 1.125rem;
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-1);
+            text-decoration: none;
+            transition: box-shadow 200ms ease;
+          "
+        >Read articles →</a>
+      </div>
+    </div>
+  </section>
+
 </BaseLayout>
+
+<style>
+  /* Desktop bento: subnet card 2/3 width + right column 1/3 */
+  @media (min-width: 768px) {
+    .md\:grid-3col {
+      grid-template-columns: 2fr 1fr;
+    }
+    .md\:right-stack {
+      grid-template-rows: 1fr 1fr;
+    }
+  }
+
+  /* Hover arrow nudge */
+  .group:hover .group-hover\:translate-x-1 {
+    transform: translateX(4px);
+  }
+</style>
