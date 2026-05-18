@@ -44,8 +44,11 @@ const navLinks = [
   <script is:inline>
     (function () {
       var saved = localStorage.getItem('nt-theme');
-      var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-      document.documentElement.classList.toggle('dark', theme === 'dark');
+      if (saved) {
+        document.documentElement.classList.toggle('dark', saved === 'dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
     })();
   </script>
 
