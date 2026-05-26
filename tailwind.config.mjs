@@ -5,8 +5,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['DM Sans', 'Helvetica Neue', 'system-ui', 'sans-serif'],
-        mono: ['Fira Code', 'Courier New', 'monospace'],
+        sans: ['"Space Grotesk"', '"Helvetica Neue"', 'system-ui', 'sans-serif'],
+        mono: ['"Space Mono"', '"JetBrains Mono"', 'ui-monospace', 'monospace'],
       },
     },
   },

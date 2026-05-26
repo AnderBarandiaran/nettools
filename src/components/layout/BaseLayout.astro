@@ -38,18 +38,11 @@ const navLinks = [
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#0066cc" />
+  <meta name="theme-color" content="#0F4C81" />
 
-  <!-- Apply theme before paint -->
+  <!-- Apply theme before paint — default is always light -->
   <script is:inline>
-    (function () {
-      var saved = localStorage.getItem('nt-theme');
-      if (saved) {
-        document.documentElement.classList.toggle('dark', saved === 'dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-    })();
+    (function(){var s=localStorage.getItem('nt-theme');if(s){document.documentElement.classList.toggle('dark',s==='dark');}else{document.documentElement.classList.remove('dark');}})();
   </script>
 
   <title>{fullTitle}</title>
@@ -80,33 +73,35 @@ const navLinks = [
 </head>
 <body>
 
-  <!-- Nav: flat, honest, no theatrics -->
-  <header style="background-color: var(--surface); border-bottom: 1px solid var(--border);">
-    <div class="max-w-6xl mx-auto px-4">
+  <!-- Nav -->
+  <header style="background: var(--bg-1); border-bottom: 1px solid var(--border-1); position: sticky; top: 0; z-index: 40;">
+    <div style="max-width: var(--maxw-content); margin: 0 auto; padding: 0 var(--gutter);">
       <nav
         style="
           display: flex;
           align-items: center;
           height: 56px;
-          gap: 2rem;
+          gap: var(--sp-8);
         "
         aria-label="Main navigation"
       >
+        <!-- Logo -->
         <a
           href="/"
           style="
-            font-family: 'DM Sans', sans-serif;
+            font-family: var(--font-sans);
             font-weight: 700;
             font-size: 1rem;
-            color: var(--text-1);
+            color: var(--fg-1);
             text-decoration: none;
-            letter-spacing: -0.02em;
+            letter-spacing: var(--tr-tight);
             flex-shrink: 0;
           "
         >
           NetTools
         </a>
 
+        <!-- Nav links -->
         <ul
           style="
             display: flex;
@@ -124,20 +119,7 @@ const navLinks = [
             <li>
               <a
                 href={link.href}
-                style="
-                  display: block;
-                  padding: 0.375rem 0.75rem;
-                  font-family: 'DM Sans', sans-serif;
-                  font-size: 0.875rem;
-                  font-weight: 500;
-                  color: var(--text-2);
-                  text-decoration: none;
-                  white-space: nowrap;
-                  border-radius: 4px;
-                  transition: color 120ms ease, background-color 120ms ease;
-                "
-                onmouseover="this.style.color='var(--text-1)'; this.style.backgroundColor='var(--canvas)'"
-                onmouseout="this.style.color='var(--text-2)'; this.style.backgroundColor='transparent'"
+                class="nav-link"
               >
                 {link.label}
               </a>
@@ -154,19 +136,22 @@ const navLinks = [
     <slot />
   </main>
 
-  <footer style="border-top: 1px solid var(--border); margin-top: 5rem; padding: 2.5rem 0; background-color: var(--surface);">
-    <div class="max-w-6xl mx-auto px-4">
-      <div style="display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 2rem;">
+  <!-- Footer -->
+  <footer style="border-top: 1px solid var(--border-1); margin-top: var(--sp-20); padding: var(--sp-12) 0; background: var(--bg-1);">
+    <div style="max-width: var(--maxw-content); margin: 0 auto; padding: 0 var(--gutter);">
+      <div style="display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--sp-8);">
+
         <div>
-          <p style="font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 0.9375rem; color: var(--text-1); letter-spacing: -0.02em; margin-bottom: 0.375rem;">
+          <p style="font-family: var(--font-sans); font-weight: 700; font-size: var(--t-body-s); color: var(--fg-1); letter-spacing: var(--tr-tight); margin-bottom: var(--sp-2);">
             NetTools
           </p>
-          <p style="font-size: 0.8125rem; color: var(--text-3); max-width: 30ch; line-height: 1.6;">
+          <p style="font-size: var(--t-caption); color: var(--fg-3); max-width: 30ch; line-height: var(--lh-body);">
             Free professional networking tools. No account. No data collection.
           </p>
         </div>
+
         <nav aria-label="Footer navigation">
-          <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 0.25rem 1.5rem;">
+          <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-6);">
             {[
               { href: '/subnetting/', label: 'Subnet Calculator' },
               { href: '/subnetting/vlsm/', label: 'VLSM Planner' },
@@ -180,14 +165,7 @@ const navLinks = [
               <li>
                 <a
                   href={link.href}
-                  style="
-                    font-size: 0.8125rem;
-                    color: var(--text-3);
-                    text-decoration: none;
-                    transition: color 120ms ease;
-                  "
-                  onmouseover="this.style.color='var(--text-1)'"
-                  onmouseout="this.style.color='var(--text-3)'"
+                  class="footer-link"
                 >
                   {link.label}
                 </a>
@@ -195,28 +173,73 @@ const navLinks = [
             ))}
           </ul>
         </nav>
+
       </div>
-      <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
-        <p style="font-size: 0.75rem; color: var(--text-3);">© {new Date().getFullYear()} NetTools</p>
-        <p style="font-size: 0.75rem; color: var(--text-3);">Runs entirely in your browser.</p>
+
+      <div style="margin-top: var(--sp-8); padding-top: var(--sp-6); border-top: 1px solid var(--border-2); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--sp-4);">
+        <p style="font-size: var(--t-caption); color: var(--fg-3);">© {new Date().getFullYear()} NetTools</p>
+        <p style="font-size: var(--t-caption); color: var(--fg-3);">Runs entirely in your browser.</p>
       </div>
     </div>
   </footer>
 
-  <!-- Scroll entry: opacity only -->
+  <!-- IntersectionObserver: .fade-in → visible -->
   <script>
     const io = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            entry.target.classList.add('in-view');
+            entry.target.classList.add('visible');
             io.unobserve(entry.target);
           }
         });
       },
       { threshold: 0.05 }
     );
-    document.querySelectorAll('.scroll-entry').forEach((el) => io.observe(el));
+    document.querySelectorAll('.fade-in').forEach((el) => io.observe(el));
+
+    // Also handle legacy .scroll-entry class
+    const io2 = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('in-view');
+            io2.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.05 }
+    );
+    document.querySelectorAll('.scroll-entry').forEach((el) => io2.observe(el));
   </script>
+
 </body>
 </html>
+
+<style>
+  .nav-link {
+    display: block;
+    padding: 0.375rem 0.625rem;
+    font-family: var(--font-sans);
+    font-size: var(--t-body-s);
+    font-weight: 500;
+    color: var(--fg-2);
+    text-decoration: none;
+    white-space: nowrap;
+    border-radius: var(--r-2);
+    transition: color var(--dur-quick) var(--ease-out);
+  }
+  .nav-link:hover {
+    color: var(--fg-1);
+  }
+
+  .footer-link {
+    font-size: var(--t-caption);
+    color: var(--fg-3);
+    text-decoration: none;
+    transition: color var(--dur-quick) var(--ease-out);
+  }
+  .footer-link:hover {
+    color: var(--fg-1);
+  }
+</style>

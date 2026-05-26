@@ -57,12 +57,12 @@ export default function SubnetCalculator() {
         <p
           role="alert"
           style={{
-            fontSize: '0.875rem',
-            color: 'var(--error)',
+            fontSize: 'var(--t-body-s)',
+            color: 'var(--nt-stop)',
             padding: '0.625rem 0.875rem',
-            backgroundColor: 'var(--error-subtle)',
-            border: '1px solid var(--error)',
-            borderRadius: '4px',
+            backgroundColor: 'var(--nt-stop-tint)',
+            border: '1px solid var(--nt-stop)',
+            borderRadius: 'var(--r-2)',
           }}
         >
           {error}
@@ -75,38 +75,103 @@ export default function SubnetCalculator() {
           <table style={{
             width: '100%',
             borderCollapse: 'collapse',
-            fontSize: '0.9375rem',
-            border: '1px solid var(--border)',
+            fontSize: 'var(--t-body-s)',
+            border: '1px solid var(--border-1)',
           }}>
             <thead>
-              <tr style={{ backgroundColor: 'var(--canvas)' }}>
+              <tr style={{ backgroundColor: 'var(--bg-2)' }}>
                 <th style={thStyle}>Parameter</th>
                 <th style={thStyle}>Value</th>
               </tr>
             </thead>
             <tbody>
-              <ResultRow label="Network address"   value={result.networkAddress}  accent />
-              <ResultRow label="Broadcast address" value={result.broadcastAddress} warn />
-              <ResultRow label="First usable host" value={result.firstHost} />
-              <ResultRow label="Last usable host"  value={result.lastHost} />
-              <ResultRow label="Usable hosts"      value={result.usableHosts.toLocaleString()} />
-              <ResultRow label="Total addresses"   value={result.totalHosts.toLocaleString()} />
-              <ResultRow label="Subnet mask"       value={result.subnetMask} />
-              <ResultRow label="Wildcard mask"     value={result.wildcardMask} />
-              <ResultRow label="CIDR prefix"       value={`/${result.prefix}`} />
-              <ResultRow label="IP class"          value={`Class ${result.ipClass}`} />
-              <ResultRow label="Private (RFC 1918)" value={result.isPrivate ? 'Yes' : 'No'} />
+              {/* Network address — data blue */}
+              <ResultRow
+                label="Network address"
+                value={result.networkAddress}
+                valueStyle={{ color: 'var(--nt-data)', fontFamily: 'var(--font-mono)' }}
+              />
+              {/* Broadcast address — stop red */}
+              <ResultRow
+                label="Broadcast address"
+                value={result.broadcastAddress}
+                valueStyle={{ color: 'var(--nt-stop)', fontFamily: 'var(--font-mono)' }}
+              />
+              {/* First/Last host — go green */}
+              <ResultRow
+                label="First usable host"
+                value={result.firstHost}
+                valueStyle={{ color: 'var(--nt-go)', fontFamily: 'var(--font-mono)' }}
+              />
+              <ResultRow
+                label="Last usable host"
+                value={result.lastHost}
+                valueStyle={{ color: 'var(--nt-go)', fontFamily: 'var(--font-mono)' }}
+              />
+              {/* Usable hosts — go green, weight 600 */}
+              <ResultRow
+                label="Usable hosts"
+                value={result.usableHosts.toLocaleString()}
+                valueStyle={{ color: 'var(--nt-go)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}
+              />
+              <ResultRow
+                label="Total addresses"
+                value={result.totalHosts.toLocaleString()}
+                valueStyle={{ fontFamily: 'var(--font-mono)', color: 'var(--fg-1)' }}
+              />
+              {/* Subnet / Wildcard mask — mono, fg-1 */}
+              <ResultRow
+                label="Subnet mask"
+                value={result.subnetMask}
+                valueStyle={{ fontFamily: 'var(--font-mono)', color: 'var(--fg-1)' }}
+              />
+              <ResultRow
+                label="Wildcard mask"
+                value={result.wildcardMask}
+                valueStyle={{ fontFamily: 'var(--font-mono)', color: 'var(--fg-1)' }}
+              />
+              <ResultRow
+                label="CIDR prefix"
+                value={`/${result.prefix}`}
+                valueStyle={{ fontFamily: 'var(--font-mono)', color: 'var(--fg-1)' }}
+              />
+              <ResultRow
+                label="IP class"
+                value={`Class ${result.ipClass}`}
+                valueStyle={{ fontFamily: 'var(--font-mono)', color: 'var(--fg-1)' }}
+              />
+              {/* Private range — go/fg-2 */}
+              <ResultRow
+                label="Private (RFC 1918)"
+                value={result.isPrivate ? 'Yes' : 'No'}
+                valueStyle={{
+                  fontFamily: 'var(--font-mono)',
+                  color: result.isPrivate ? 'var(--nt-go)' : 'var(--fg-2)',
+                }}
+              />
             </tbody>
           </table>
 
           {/* Binary section */}
-          <div style={{ marginTop: '1.5rem' }}>
-            <p style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-3)', marginBottom: '0.625rem' }}>
+          <div style={{ marginTop: 'var(--sp-6)' }}>
+            <p style={{
+              fontSize: 'var(--t-eyebrow)',
+              fontWeight: 600,
+              letterSpacing: 'var(--tr-eyebrow)',
+              textTransform: 'uppercase',
+              color: 'var(--fg-3)',
+              marginBottom: 'var(--sp-3)',
+            }}>
               Binary representation
             </p>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem', border: '1px solid var(--border)' }}>
+            <table style={{
+              width: '100%',
+              borderCollapse: 'collapse',
+              fontSize: 'var(--t-body-s)',
+              border: '1px solid var(--border-1)',
+            }}>
               <thead>
-                <tr style={{ backgroundColor: 'var(--canvas)' }}>
+                <tr style={{ backgroundColor: 'var(--bg-2)' }}>
                   <th style={thStyle}>Field</th>
                   <th style={thStyle}>Binary</th>
                 </tr>
@@ -114,9 +179,9 @@ export default function SubnetCalculator() {
               <tbody>
                 <tr>
                   <td style={tdLabel}>Network address</td>
-                  <td style={{ ...tdMono, color: 'var(--accent-text)' }}>{fmt(result.binaryNetworkAddress)}</td>
+                  <td style={{ ...tdMono, color: 'var(--nt-data)' }}>{fmt(result.binaryNetworkAddress)}</td>
                 </tr>
-                <tr style={{ backgroundColor: 'var(--canvas)' }}>
+                <tr style={{ backgroundColor: 'var(--bg-2)' }}>
                   <td style={tdLabel}>Subnet mask</td>
                   <td style={tdMono}>{fmt(result.binarySubnetMask)}</td>
                 </tr>
@@ -128,7 +193,7 @@ export default function SubnetCalculator() {
 
       {/* Empty state */}
       {!result && !error && (
-        <p style={{ fontSize: '0.875rem', color: 'var(--text-3)', padding: '1rem 0' }}>
+        <p style={{ fontSize: 'var(--t-body-s)', color: 'var(--fg-3)', padding: 'var(--sp-4) 0' }}>
           Enter a CIDR address above and press Calculate or Enter.
         </p>
       )}
@@ -139,53 +204,51 @@ export default function SubnetCalculator() {
 const thStyle: React.CSSProperties = {
   textAlign: 'left',
   padding: '0.625rem 0.875rem',
-  fontSize: '0.75rem',
-  fontWeight: 700,
-  letterSpacing: '0.06em',
+  fontSize: 'var(--t-eyebrow)' as string,
+  fontWeight: 600,
+  letterSpacing: 'var(--tr-eyebrow)' as string,
   textTransform: 'uppercase' as const,
-  color: 'var(--text-3)',
-  borderBottom: '1px solid var(--border)',
+  color: 'var(--fg-3)',
+  borderBottom: '1px solid var(--border-1)',
   whiteSpace: 'nowrap',
+  fontFamily: 'var(--font-sans)',
 };
 
 const tdLabel: React.CSSProperties = {
   padding: '0.625rem 0.875rem',
-  color: 'var(--text-2)',
-  fontSize: '0.875rem',
-  borderBottom: '1px solid var(--border-subtle)',
+  color: 'var(--fg-2)',
+  fontSize: 'var(--t-body-s)' as string,
+  borderBottom: '1px solid var(--border-2)',
   whiteSpace: 'nowrap',
   fontWeight: 500,
+  fontFamily: 'var(--font-sans)',
 };
 
 const tdMono: React.CSSProperties = {
   padding: '0.625rem 0.875rem',
-  fontFamily: "'Fira Code', monospace",
-  fontSize: '0.8125rem',
-  color: 'var(--text-1)',
-  borderBottom: '1px solid var(--border-subtle)',
+  fontFamily: 'var(--font-mono)',
+  fontSize: 'var(--t-caption)' as string,
+  color: 'var(--fg-1)',
+  borderBottom: '1px solid var(--border-2)',
   wordBreak: 'break-all',
 };
 
 function ResultRow({
   label,
   value,
-  accent,
-  warn,
+  valueStyle,
 }: {
   label: string;
   value: string | number;
-  accent?: boolean;
-  warn?: boolean;
+  valueStyle?: React.CSSProperties;
 }) {
-  const valueColor = accent ? 'var(--accent-text)' : warn ? 'var(--warning)' : 'var(--text-1)';
   return (
     <tr>
       <td style={tdLabel}>{label}</td>
       <td
         style={{
           ...tdMono,
-          color: valueColor,
-          fontWeight: accent || warn ? 600 : 400,
+          ...valueStyle,
         }}
       >
         {String(value)}
