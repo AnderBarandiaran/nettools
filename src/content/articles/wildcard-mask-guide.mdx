@@ -1,0 +1,184 @@
+---
+title: "Wildcard Mask Calculator and Guide — Cisco ACL and OSPF"
+description: "Complete guide to wildcard masks in Cisco IOS. Learn how to calculate wildcard masks for ACLs and OSPF network statements, with examples and a reference table."
+pubDate: 2026-03-05
+category: cisco
+tags: ["wildcard mask", "Cisco IOS", "ACL", "OSPF", "subnetting"]
+featured: false
+---
+
+# Wildcard Mask Guide — Cisco ACL and OSPF
+
+Wildcard masks are the inverse logic filter used by Cisco IOS in access control lists and OSPF network statements. Understanding them fluently is essential for any practising network engineer — a single wrong bit in a wildcard mask lets through traffic that should be blocked, or blocks legitimate traffic instead.
+
+## What Is a Wildcard Mask?
+
+A wildcard mask is a 32-bit value paired with an IP address. Each bit position tells the router whether that bit in the IP address must match exactly:
+
+- **0 bit** (care bit): this bit in the address MUST match exactly.
+- **1 bit** (don't-care bit): this bit in the address is ignored.
+
+This is the logical inverse of a subnet mask, where `1` bits identify the network and `0` bits identify the host. In a wildcard mask, `0` bits identify what must match and `1` bits identify what can be anything.
+
+The `host` keyword is shorthand for wildcard `0.0.0.0` — match every bit. The `any` keyword is shorthand for `0.0.0.0 255.255.255.255` — ignore every bit, match any address.
+
+## Calculating Wildcard Masks
+
+The formula is straightforward: subtract the subnet mask from `255.255.255.255`.
+
+```
+Wildcard = 255.255.255.255 − Subnet mask
+```
+
+Examples:
+
+| Prefix | Subnet mask | Wildcard mask |
+|--------|-------------|---------------|
+| /8  | 255.0.0.0 | 0.255.255.255 |
+| /16 | 255.255.0.0 | 0.0.255.255 |
+| /24 | 255.255.255.0 | 0.0.0.255 |
+| /25 | 255.255.255.128 | 0.0.0.127 |
+| /26 | 255.255.255.192 | 0.0.0.63 |
+| /27 | 255.255.255.224 | 0.0.0.31 |
+| /28 | 255.255.255.240 | 0.0.0.15 |
+| /29 | 255.255.255.248 | 0.0.0.7 |
+| /30 | 255.255.255.252 | 0.0.0.3 |
+
+For /24: `255.255.255.255 − 255.255.255.0 = 0.0.0.255`. The first three octets must match exactly; the last octet is a don't-care — match any host in this /24.
+
+## Complete Wildcard Reference Table /0 to /32
+
+| CIDR | Subnet mask | Wildcard mask |
+|------|-------------|---------------|
+| /0  | 0.0.0.0 | 255.255.255.255 |
+| /1  | 128.0.0.0 | 127.255.255.255 |
+| /2  | 192.0.0.0 | 63.255.255.255 |
+| /3  | 224.0.0.0 | 31.255.255.255 |
+| /4  | 240.0.0.0 | 15.255.255.255 |
+| /5  | 248.0.0.0 | 7.255.255.255 |
+| /6  | 252.0.0.0 | 3.255.255.255 |
+| /7  | 254.0.0.0 | 1.255.255.255 |
+| /8  | 255.0.0.0 | 0.255.255.255 |
+| /9  | 255.128.0.0 | 0.127.255.255 |
+| /10 | 255.192.0.0 | 0.63.255.255 |
+| /11 | 255.224.0.0 | 0.31.255.255 |
+| /12 | 255.240.0.0 | 0.15.255.255 |
+| /13 | 255.248.0.0 | 0.7.255.255 |
+| /14 | 255.252.0.0 | 0.3.255.255 |
+| /15 | 255.254.0.0 | 0.1.255.255 |
+| /16 | 255.255.0.0 | 0.0.255.255 |
+| /17 | 255.255.128.0 | 0.0.127.255 |
+| /18 | 255.255.192.0 | 0.0.63.255 |
+| /19 | 255.255.224.0 | 0.0.31.255 |
+| /20 | 255.255.240.0 | 0.0.15.255 |
+| /21 | 255.255.248.0 | 0.0.7.255 |
+| /22 | 255.255.252.0 | 0.0.3.255 |
+| /23 | 255.255.254.0 | 0.0.1.255 |
+| /24 | 255.255.255.0 | 0.0.0.255 |
+| /25 | 255.255.255.128 | 0.0.0.127 |
+| /26 | 255.255.255.192 | 0.0.0.63 |
+| /27 | 255.255.255.224 | 0.0.0.31 |
+| /28 | 255.255.255.240 | 0.0.0.15 |
+| /29 | 255.255.255.248 | 0.0.0.7 |
+| /30 | 255.255.255.252 | 0.0.0.3 |
+| /31 | 255.255.255.254 | 0.0.0.1 |
+| /32 | 255.255.255.255 | 0.0.0.0 |
+
+## Wildcard Masks in Cisco ACLs
+
+In access control lists, the wildcard mask follows the IP address to define which range of addresses the ACE matches.
+
+**Permit all hosts in the 10.10.10.0/24 network:**
+```
+access-list 10 permit 10.10.10.0 0.0.0.255
+```
+
+**Permit only the host 192.168.1.5:**
+```
+access-list 10 permit host 192.168.1.5
+! Equivalent to:
+access-list 10 permit 192.168.1.5 0.0.0.0
+```
+
+**Deny traffic from the entire 172.16.0.0/12 RFC 1918 range:**
+```
+access-list 110 deny ip 172.16.0.0 0.15.255.255 any
+```
+Here `0.15.255.255` is the wildcard for /12: the first octet must match 172 exactly (wildcard `0`), the second octet upper four bits must match `0001` (wildcard `15` = `00001111`), and the last two octets are don't-care.
+
+**Extended ACL — permit SSH from the management network only:**
+```
+ip access-list extended ALLOW-SSH
+ permit tcp 10.100.0.0 0.0.0.255 any eq 22
+ deny   tcp any any eq 22 log
+ permit ip any any
+```
+
+## Non-Contiguous Wildcard Masks
+
+Wildcard masks do not have to be contiguous. This is where they diverge most sharply from subnet masks, which must always have contiguous `1` bits. A non-contiguous wildcard can match patterns that no single subnet can express.
+
+**Match only odd-numbered hosts in a /24 (last bit = 1):**
+```
+access-list 10 permit 192.168.1.1 0.0.0.254
+```
+Wildcard `0.0.0.254` = `11111110` in the last octet. The last bit is `0` (care bit), so it must equal `1` (from the address `192.168.1.1`). Every other bit in the last octet is `1` (don't-care). Result: matches 192.168.1.1, .3, .5, .7, .9... any address with an odd last octet.
+
+**Match only even-numbered hosts:**
+```
+access-list 10 permit 192.168.1.0 0.0.0.254
+```
+The last bit in the wildcard is still `0` (care), and the address last octet is `0`. So only even last octets match: .0, .2, .4, .6...
+
+**Match multiple /24 subnets with one statement:**
+```
+! Match 10.1.0.0/24, 10.1.1.0/24, 10.1.2.0/24, 10.1.3.0/24:
+access-list 10 permit 10.1.0.0 0.0.3.255
+```
+Wildcard `0.0.3.255`: the first two octets must match exactly (`10.1`), the third octet has wildcard `3` = `00000011` (last two bits are don't-care), last octet is all don't-care. This matches any host in any of the four /24 subnets within the /22 block.
+
+## Wildcard Masks in OSPF Network Statements
+
+OSPF uses wildcard masks in the `network` command to tell which interfaces participate in OSPF and which area they belong to.
+
+```
+router ospf 1
+ network 10.0.0.0 0.255.255.255 area 0
+```
+This enables OSPF on all interfaces whose IP address falls within `10.0.0.0/8` and places them in area 0.
+
+**More specific — only interfaces in 192.168.10.0/24:**
+```
+router ospf 1
+ network 192.168.10.0 0.0.0.255 area 1
+```
+
+**Single interface — using /32 equivalent:**
+```
+router ospf 1
+ network 10.1.1.1 0.0.0.0 area 0
+```
+This enables OSPF only on the interface with IP `10.1.1.1`, regardless of other interfaces. Many engineers prefer the interface-level command instead:
+```
+interface GigabitEthernet0/0
+ ip ospf 1 area 0
+```
+
+**Match a specific range of addresses:**
+```
+router ospf 1
+ network 172.16.0.0 0.0.255.255 area 0
+```
+Matches all interfaces with addresses in `172.16.0.0/16`, placing them all in area 0.
+
+When troubleshooting OSPF, run `show ip ospf interface brief` to verify which interfaces are actually participating. A common mistake is a `network` statement whose wildcard mask does not cover the interface address — the interface looks fine in `show interfaces` but is absent from OSPF.
+
+## Common Mistakes
+
+**Using a subnet mask instead of a wildcard mask in an ACL.** The IOS parser may accept `255.255.255.0` as a wildcard (it's a valid 32-bit value) but it has the opposite effect — it matches only addresses where the first, second, and third octets are "don't-care" and the fourth must be `0`. This is almost never what you want and is a frequent source of hard-to-find ACL bugs.
+
+**Wrong wildcard for a CIDR block.** Wanting to permit `10.20.0.0/22` and writing `0.0.0.255` (a /24 wildcard) instead of `0.0.3.255` (the correct /22 wildcard). Always calculate: for /22, the wildcard is `255.255.255.255 − 255.255.252.0 = 0.0.3.255`.
+
+**Forgetting that `any` and `0.0.0.0 255.255.255.255` are identical.** These are interchangeable. In named ACLs, `any` is cleaner; in verify output (`show ip access-lists`), IOS displays `any` for both forms.
+
+**Non-contiguous wildcards for routing protocols.** While ACLs support non-contiguous wildcards, OSPF and EIGRP `network` statements expect contiguous wildcard masks that correspond to standard CIDR prefixes. Using a non-contiguous mask in a routing protocol network statement may cause unexpected interface inclusions.
