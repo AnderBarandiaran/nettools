@@ -1,0 +1,204 @@
+---
+title: "IP Addressing Basics — IPv4 Address Classes, Subnetting, and CIDR"
+description: "Complete guide to IPv4 addressing. Covers address structure, classful addressing, private ranges, CIDR notation, subnet calculation, and how routers use IP addresses."
+pubDate: 2026-03-10
+category: subnetting
+tags: ["IP addressing", "IPv4", "CIDR", "subnetting", "network engineering", "classful"]
+featured: false
+---
+
+# IP Addressing Basics — IPv4 Addressing Explained
+
+An IPv4 address is a 32-bit number that uniquely identifies a network interface. Every packet on an IP network carries a source address and a destination address; routers read these addresses to decide where to forward each packet. This guide explains how those addresses are structured, how they are assigned, and how they map to network segments.
+
+## The 32-Bit Address
+
+IPv4 addresses are 32 bits long. They are written in dotted-decimal notation: four groups of 8 bits (octets), each expressed as a decimal number from 0 to 255.
+
+```
+Binary:   11000000.10101000.00000001.01100100
+Decimal:  192      .168     .1       .100
+```
+
+Each octet represents 8 bits. The minimum decimal value per octet is 0 (all bits 0). The maximum is 255 (all bits 1). Addresses range from 0.0.0.0 to 255.255.255.255 — a theoretical address space of 4,294,967,296 (2³²) unique values.
+
+### Converting Between Binary and Decimal
+
+Each bit position in an octet has a value: 128, 64, 32, 16, 8, 4, 2, 1.
+
+For octet value 192:
+```
+128 + 64 = 192
+Binary: 1 1 0 0 0 0 0 0
+```
+
+For octet value 168:
+```
+128 + 32 + 8 = 168
+Binary: 1 0 1 0 1 0 0 0
+```
+
+This conversion matters when working with subnet masks, wildcard masks, and VLSM design — the bit-level structure determines which addresses belong to the same network.
+
+## Network and Host Portions
+
+Every IPv4 address consists of two portions: the **network portion** and the **host portion**. All devices in the same IP network share the same network portion. The host portion identifies the individual device within that network.
+
+The division between network and host is determined by the **subnet mask** (or equivalently, the CIDR prefix length). A subnet mask is another 32-bit value where contiguous 1 bits mark the network portion and 0 bits mark the host portion.
+
+```
+Address:     192.168.1.100    = 11000000.10101000.00000001.01100100
+Subnet mask: 255.255.255.0    = 11111111.11111111.11111111.00000000
+                                |----- network (24 bits) -----|-host-|
+
+Network address: 192.168.1.0
+Host portion:    .100
+```
+
+Two addresses are in the same network when their network portions match — when a bitwise AND of each address with the subnet mask produces the same result.
+
+## Classful Addressing (Historical Context)
+
+Before CIDR, IPv4 addresses were divided into fixed classes based on the leading bits of the first octet. This classful model was the default from the early 1980s until it was replaced by CIDR in 1993.
+
+| Class | First octet range | Default mask | Networks | Hosts per network |
+|-------|-------------------|--------------|----------|-------------------|
+| A | 1–126 | 255.0.0.0 (/8) | 126 | 16,777,214 |
+| B | 128–191 | 255.255.0.0 (/16) | 16,384 | 65,534 |
+| C | 192–223 | 255.255.255.0 (/24) | 2,097,152 | 254 |
+| D | 224–239 | Multicast (no mask) | — | — |
+| E | 240–255 | Experimental (reserved) | — | — |
+
+Class A addresses (first bit 0) gave enormous /8 blocks to early organisations — IBM owns 9.0.0.0/8, Apple owns 17.0.0.0/8. Class B gave /16 blocks to universities and corporations. Class C gave /24 blocks to smaller organisations.
+
+The classful model wasted enormous address space. A company needing 300 hosts needed a full Class B (/16, 65,534 hosts) because Class C (/24, 254 hosts) was too small. The unused 65,234 addresses were simply gone. CIDR replaced this rigid system with variable-length prefix notation.
+
+## CIDR — Classless Inter-Domain Routing
+
+CIDR notation writes the prefix length after the address with a slash: `192.168.1.0/24`. This tells you the first 24 bits are the network portion; the remaining 8 bits are the host portion.
+
+CIDR allows any prefix length from /0 (the entire internet, match everything) to /32 (a single host, all 32 bits must match).
+
+**Key relationships:**
+
+| CIDR prefix | Subnet mask | Host addresses | Usable hosts |
+|-------------|-------------|----------------|--------------|
+| /8  | 255.0.0.0 | 16,777,216 | 16,777,214 |
+| /16 | 255.255.0.0 | 65,536 | 65,534 |
+| /24 | 255.255.255.0 | 256 | 254 |
+| /25 | 255.255.255.128 | 128 | 126 |
+| /26 | 255.255.255.192 | 64 | 62 |
+| /27 | 255.255.255.224 | 32 | 30 |
+| /28 | 255.255.255.240 | 16 | 14 |
+| /29 | 255.255.255.248 | 8 | 6 |
+| /30 | 255.255.255.252 | 4 | 2 |
+
+Usable hosts = total addresses − 2. The first address (all host bits 0) is the network address. The last address (all host bits 1) is the broadcast address. Neither can be assigned to a host.
+
+A /30 provides exactly 2 usable host addresses — the standard choice for point-to-point links between routers, where only two IP addresses are needed.
+
+## Private Address Ranges
+
+RFC 1918 reserves three address blocks for private use. These addresses are not routed on the public internet; any router at the internet border discards packets with RFC 1918 source or destination addresses.
+
+| Range | CIDR notation | Address count |
+|-------|---------------|---------------|
+| 10.0.0.0 – 10.255.255.255 | 10.0.0.0/8 | 16,777,216 |
+| 172.16.0.0 – 172.31.255.255 | 172.16.0.0/12 | 1,048,576 |
+| 192.168.0.0 – 192.168.255.255 | 192.168.0.0/16 | 65,536 |
+
+Most enterprise networks and all home networks use RFC 1918 addresses internally, with NAT (Network Address Translation) mapping them to one or more public IP addresses at the internet edge.
+
+## Special and Reserved Addresses
+
+Several IP address ranges have special meaning beyond RFC 1918:
+
+**Loopback: 127.0.0.0/8.** Traffic sent to any address in this block is looped back to the local host without leaving the network stack. `127.0.0.1` is the canonical loopback address, used to test the IP stack itself and to communicate with services running on the same host.
+
+**Link-local: 169.254.0.0/16.** Assigned automatically (APIPA — Automatic Private IP Addressing) when a host cannot obtain an address from DHCP. A link-local address is not routable and is only valid within a single network segment. Seeing `169.254.x.x` addresses is a reliable indicator of DHCP failure.
+
+**Multicast: 224.0.0.0/4.** Used for one-to-many communication. A packet sent to a multicast address is delivered to all group members. Routing protocols use specific multicast addresses: OSPF uses 224.0.0.5 (all OSPF routers) and 224.0.0.6 (all OSPF DRs); EIGRP uses 224.0.0.10; RIPv2 uses 224.0.0.9.
+
+**Broadcast: 255.255.255.255.** Limited broadcast address — sent to all hosts on the local segment. Not routed. Used by DHCP Discover messages before the client has an IP address.
+
+## How Routers Use IP Addresses
+
+A router maintains a routing table: a list of known networks and the next-hop address or exit interface to reach each one. When a packet arrives, the router performs a longest-prefix match against all entries in the routing table.
+
+**Longest-prefix match:** if two entries both match the destination, the one with the longer prefix (more specific) wins.
+
+```
+Routing table:
+  10.0.0.0/8      → interface Gi0/0
+  10.1.0.0/16     → interface Gi0/1
+  10.1.2.0/24     → interface Gi0/2
+  0.0.0.0/0       → 203.0.113.1 (default route)
+
+Destination: 10.1.2.50
+  Matches /8    (less specific)
+  Matches /16   (less specific)
+  Matches /24   (most specific) ← wins → forward out Gi0/2
+```
+
+The default route `0.0.0.0/0` matches every destination with a prefix length of zero. It is the "route of last resort" — used only when no more specific match exists.
+
+## Calculating Network Addresses
+
+To find the network address from a host IP and prefix:
+
+1. Convert the subnet mask to binary.
+2. AND each octet of the IP address with the corresponding octet of the subnet mask.
+3. The result is the network address.
+
+**Example: 192.168.10.75/26**
+
+Subnet mask for /26: 255.255.255.192 = `11111111.11111111.11111111.11000000`
+
+```
+IP:   192.168.10.75   = ...01001011
+Mask: 255.255.255.192 = ...11000000
+AND:                  = ...01000000 = 64
+```
+
+Network address: **192.168.10.64/26**
+Broadcast: 192.168.10.127 (flip all host bits to 1)
+Usable range: 192.168.10.65 – 192.168.10.126 (62 hosts)
+
+## Subnetting from a Block
+
+When designing a network, you start with an allocated block and divide it into subnets based on host requirements.
+
+**Given: 10.20.0.0/22. Divide into four equal subnets.**
+
+A /22 has 2¹⁰ = 1,024 addresses. Four equal subnets require 1,024 ÷ 4 = 256 addresses each, which is a /24.
+
+| Subnet | Network address | Broadcast | Usable hosts |
+|--------|-----------------|-----------|--------------|
+| 1 | 10.20.0.0/24 | 10.20.0.255 | 254 |
+| 2 | 10.20.1.0/24 | 10.20.1.255 | 254 |
+| 3 | 10.20.2.0/24 | 10.20.2.255 | 254 |
+| 4 | 10.20.3.0/24 | 10.20.3.255 | 254 |
+
+Each subnet increments the third octet by 1 because the /24 boundary falls on the third octet.
+
+## Verifying Address Configuration
+
+On Cisco IOS:
+```
+show ip interface brief
+show interfaces GigabitEthernet0/0
+```
+
+On Linux:
+```
+ip addr show
+ip route show
+```
+
+On Windows:
+```
+ipconfig /all
+route print
+```
+
+The key values to verify: the IP address, subnet mask, default gateway, and whether the interface is up/up (protocol up and line protocol up on Cisco). A misconfigured subnet mask is one of the most common causes of connectivity failures — hosts can reach devices in their perceived subnet but fail to reach anything else because their gateway is in a different network from their perspective.

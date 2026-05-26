@@ -1,0 +1,113 @@
+---
+import BaseLayout from '../../components/layout/BaseLayout.astro';
+import AdSlot from '../../components/ads/AdSlot.astro';
+import WildcardCalc from '../../components/islands/WildcardCalc';
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Wildcard Mask Calculator",
+  "applicationCategory": "NetworkingApplication",
+  "operatingSystem": "Web",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "description": "Free wildcard mask calculator for Cisco IOS. Convert subnet masks to wildcard masks, calculate host counts, and generate ACL and OSPF configuration examples.",
+  "featureList": [
+    "CIDR to wildcard mask conversion",
+    "Subnet mask to wildcard mask conversion",
+    "Host address count calculation",
+    "Cisco ACL example generation",
+    "OSPF network statement examples"
+  ]
+};
+---
+
+<BaseLayout
+  title="Wildcard Mask Calculator — Cisco ACL and OSPF | NetTools"
+  description="Convert subnet masks to wildcard masks for Cisco IOS ACLs and OSPF. Enter CIDR notation, prefix length, or subnet mask for instant wildcard calculation with ready-to-use config examples."
+  jsonLd={jsonLd}
+>
+  <nav class="max-w-6xl mx-auto px-4 pt-6 pb-2" aria-label="Breadcrumb">
+    <ol class="flex items-center gap-2 text-sm" style="color: var(--fg-3)">
+      <li><a href="/" class="hover:underline" style="color: var(--fg-3)">Home</a></li>
+      <li aria-hidden="true">/</li>
+      <li style="color: var(--fg-1); font-weight: 500">Wildcard Calculator</li>
+    </ol>
+  </nav>
+
+  <header class="max-w-6xl mx-auto px-4 pt-4 pb-8">
+    <h1 class="text-3xl sm:text-4xl font-bold mb-3" style="color: var(--fg-1)">
+      Wildcard Mask Calculator
+    </h1>
+    <p class="text-lg max-w-2xl" style="color: var(--fg-2)">
+      Convert subnet masks to wildcard masks for use in Cisco IOS access control lists
+      and OSPF network statements. Enter CIDR notation, a prefix length, or a subnet
+      mask — results update instantly.
+    </p>
+  </header>
+
+  <div class="flex justify-center pb-6">
+    <AdSlot slot="leaderboard" />
+  </div>
+
+  <section class="max-w-6xl mx-auto px-4 pb-8">
+    <WildcardCalc client:load />
+  </section>
+
+  <div class="flex justify-center pb-8">
+    <AdSlot slot="rectangle" />
+  </div>
+
+  <article class="max-w-3xl mx-auto px-4 pb-16 prose prose-slate">
+    <h2>What is a wildcard mask?</h2>
+    <p>A wildcard mask is the bitwise inverse of a subnet mask. Where a subnet mask uses
+    1-bits to identify the network portion, a wildcard mask uses 0-bits to identify bits
+    that <em>must</em> match, and 1-bits for bits that are ignored (don't-care).</p>
+    <p>The formula: <code>wildcard = 255.255.255.255 − subnet mask</code>.</p>
+    <table>
+      <thead>
+        <tr><th>CIDR</th><th>Subnet mask</th><th>Wildcard mask</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>/24</td><td>255.255.255.0</td><td>0.0.0.255</td></tr>
+        <tr><td>/25</td><td>255.255.255.128</td><td>0.0.0.127</td></tr>
+        <tr><td>/26</td><td>255.255.255.192</td><td>0.0.0.63</td></tr>
+        <tr><td>/27</td><td>255.255.255.224</td><td>0.0.0.31</td></tr>
+        <tr><td>/28</td><td>255.255.255.240</td><td>0.0.0.15</td></tr>
+        <tr><td>/30</td><td>255.255.255.252</td><td>0.0.0.3</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Wildcard masks in Cisco ACLs</h2>
+    <p>In access control lists, the wildcard mask follows the IP address to define the
+    range of addresses matched by the entry:</p>
+    <pre><code>access-list 10 permit 10.10.10.0 0.0.0.255</code></pre>
+    <p>This permits any address in 10.10.10.0/24. The wildcard <code>0.0.0.255</code>
+    means: first three octets must match exactly (0 = must match), fourth octet is
+    ignored (255 = any value).</p>
+    <p>Two shorthand keywords replace common wildcard patterns:</p>
+    <ul>
+      <li><code>host 192.168.1.5</code> is equivalent to <code>192.168.1.5 0.0.0.0</code>
+      — match one specific address.</li>
+      <li><code>any</code> is equivalent to <code>0.0.0.0 255.255.255.255</code>
+      — match all addresses.</li>
+    </ul>
+
+    <h2>Wildcard masks in OSPF</h2>
+    <p>OSPF uses wildcard masks in the <code>network</code> command to determine which
+    interfaces participate in OSPF and which area they belong to:</p>
+    <pre><code>router ospf 1
+ network 10.0.0.0 0.255.255.255 area 0</code></pre>
+    <p>This enables OSPF on all interfaces with addresses in the 10.0.0.0/8 range and
+    assigns them to area 0. A more specific statement using /24 wildcard activates OSPF
+    only on interfaces in a single /24 subnet.</p>
+
+    <h2>Common mistake — using subnet mask instead of wildcard</h2>
+    <p>Cisco IOS will accept a subnet mask as a wildcard argument without error, but the
+    result is the opposite of what you intend. The mask <code>255.255.255.0</code> as a
+    wildcard means: ignore the first three octets, match only addresses where the fourth
+    octet is exactly zero. This matches one address per /24, not the whole subnet.</p>
+    <p>Always double-check: wildcard masks tend to start with zeros (for the fixed
+    portion) and end with values like 255, 127, 63, 31, 15, 7, 3, 1 (for the
+    variable portion). Subnet masks do the opposite.</p>
+  </article>
+</BaseLayout>

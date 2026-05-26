@@ -1,0 +1,117 @@
+---
+import BaseLayout from '../../components/layout/BaseLayout.astro';
+import AdSlot from '../../components/ads/AdSlot.astro';
+import BandwidthCalc from '../../components/islands/BandwidthCalc';
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Bandwidth and Throughput Calculator",
+  "applicationCategory": "NetworkingApplication",
+  "operatingSystem": "Web",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "description": "Free bandwidth and throughput calculator. Calculate effective network throughput with protocol overhead and estimate file transfer times for any link speed.",
+  "featureList": [
+    "Link speed presets from 56 Kbps to 100 Gbps",
+    "Protocol overhead calculation (Ethernet, TCP/IP, HTTPS, IPsec)",
+    "File transfer time estimation",
+    "Custom link speed input",
+    "Effective throughput calculation"
+  ]
+};
+---
+
+<BaseLayout
+  title="Bandwidth and Throughput Calculator — Transfer Times | NetTools"
+  description="Calculate effective network throughput with protocol overhead and estimate file transfer times. Supports 56 Kbps to 100 Gbps with Ethernet, TCP/IP, HTTPS, and IPsec overhead."
+  jsonLd={jsonLd}
+>
+  <nav class="max-w-6xl mx-auto px-4 pt-6 pb-2" aria-label="Breadcrumb">
+    <ol class="flex items-center gap-2 text-sm" style="color: var(--fg-3)">
+      <li><a href="/" class="hover:underline" style="color: var(--fg-3)">Home</a></li>
+      <li aria-hidden="true">/</li>
+      <li style="color: var(--fg-1); font-weight: 500">Bandwidth Calculator</li>
+    </ol>
+  </nav>
+
+  <header class="max-w-6xl mx-auto px-4 pt-4 pb-8">
+    <h1 class="text-3xl sm:text-4xl font-bold mb-3" style="color: var(--fg-1)">
+      Bandwidth and Throughput Calculator
+    </h1>
+    <p class="text-lg max-w-2xl" style="color: var(--fg-2)">
+      Calculate effective network throughput after protocol overhead, and estimate
+      file transfer times at any link speed from T1 to 100 Gbps.
+    </p>
+  </header>
+
+  <div class="flex justify-center pb-6">
+    <AdSlot slot="leaderboard" />
+  </div>
+
+  <section class="max-w-6xl mx-auto px-4 pb-8">
+    <BandwidthCalc client:load />
+  </section>
+
+  <div class="flex justify-center pb-8">
+    <AdSlot slot="rectangle" />
+  </div>
+
+  <article class="max-w-3xl mx-auto px-4 pb-16 prose prose-slate">
+    <h2>Bandwidth vs. throughput</h2>
+    <p><strong>Bandwidth</strong> is the raw capacity of a link — the maximum number of
+    bits per second the physical medium can carry. <strong>Throughput</strong> is the
+    actual data rate delivered to the application after all protocol overhead, retransmissions,
+    and congestion losses are accounted for.</p>
+    <p>Throughput is always less than bandwidth. The gap depends on the protocol stack,
+    link utilisation, latency, and packet loss rate.</p>
+
+    <h2>Protocol overhead explained</h2>
+    <p>Every layer of the protocol stack adds headers:</p>
+    <ul>
+      <li><strong>Ethernet II:</strong> 14-byte header + 4-byte FCS = 18 bytes per frame.
+      For a 1500-byte MTU, that is 18/1518 ≈ 1.2% overhead.</li>
+      <li><strong>IP + TCP:</strong> 20-byte IP header + 20-byte TCP header = 40 bytes of
+      overhead per segment (more with TCP options). On a 1460-byte TCP payload, that is
+      40/1500 ≈ 2.7%.</li>
+      <li><strong>TLS 1.3:</strong> adds per-record overhead of 5-byte header + 1-byte
+      content type + 16-byte AEAD authentication tag = 22 bytes. Combined with TCP/IP,
+      total overhead is roughly 4–5%.</li>
+      <li><strong>IPsec ESP tunnel mode:</strong> adds ESP header (8 bytes), IV (16 bytes
+      for AES-GCM), ICV (16 bytes), and a new outer IP header (20 bytes) = approximately
+      60 bytes per packet. For small packets this overhead is significant; for 1500-byte
+      frames it is roughly 4–6%, but CPU encryption cost may be the real bottleneck.</li>
+      <li><strong>GRE tunnel:</strong> adds a 4-byte GRE header and 20-byte outer IP
+      header = 24 bytes per packet, roughly 1.6% overhead at 1500-byte MTU.</li>
+    </ul>
+
+    <h2>Goodput and application-layer throughput</h2>
+    <p>Goodput is the useful payload throughput seen by the application — bandwidth minus
+    protocol overhead, minus retransmissions, minus TCP slow-start ramp-up time. For
+    long-lived TCP flows on a low-loss path, goodput typically reaches 90–95% of the raw
+    link speed. For short flows (less than one RTT), TCP never exits slow start and
+    goodput may be far below the link capacity.</p>
+
+    <h2>Common link speeds reference</h2>
+    <table>
+      <thead>
+        <tr><th>Link type</th><th>Nominal speed</th><th>Typical use</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>T1 / DS1</td><td>1.544 Mbps</td><td>Legacy WAN, some ISDN/PRI</td></tr>
+        <tr><td>T3 / DS3</td><td>44.736 Mbps</td><td>Legacy carrier interconnects</td></tr>
+        <tr><td>Fast Ethernet</td><td>100 Mbps</td><td>Access switches, older LANs</td></tr>
+        <tr><td>GigabitEthernet</td><td>1 Gbps</td><td>Distribution/core LAN, server NICs</td></tr>
+        <tr><td>10 GigE</td><td>10 Gbps</td><td>Server uplinks, data centre</td></tr>
+        <tr><td>40 GigE</td><td>40 Gbps</td><td>Data centre spine, aggregation</td></tr>
+        <tr><td>100 GigE</td><td>100 Gbps</td><td>Core/backbone, hyperscale</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Transfer time calculation</h2>
+    <p>Transfer time = file size in bits / effective throughput in bps.</p>
+    <p>Note: file sizes are typically measured in bytes (1 byte = 8 bits), and storage
+    vendors use SI prefixes (1 GB = 10⁹ bytes) while operating systems may use binary
+    prefixes (1 GiB = 2³⁰ bytes). This calculator uses SI (1 GB = 1,000,000,000 bytes)
+    for consistency with network speed measurements.</p>
+  </article>
+</BaseLayout>

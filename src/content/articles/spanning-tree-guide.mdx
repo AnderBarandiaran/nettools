@@ -1,0 +1,230 @@
+---
+title: "Spanning Tree Protocol Guide — STP, RSTP, and Cisco Enhancements"
+description: "Complete guide to Spanning Tree Protocol. Covers STP and RSTP operation, bridge election, port roles and states, PortFast, BPDU Guard, and common troubleshooting scenarios."
+pubDate: 2026-03-30
+category: switching
+tags: ["spanning tree", "STP", "RSTP", "switching", "Cisco IOS", "network engineering"]
+featured: false
+---
+
+# Spanning Tree Protocol Guide
+
+Spanning Tree Protocol (STP) prevents Layer 2 loops in switched networks. Without it, a broadcast frame in a redundant network would circulate forever, consuming all available bandwidth and crashing every switch in the loop within seconds. STP creates a loop-free logical topology by blocking redundant paths, then unblocks them when the active path fails. This guide covers 802.1D STP, 802.1w RSTP, Cisco's Per-VLAN Spanning Tree, and the security features that protect STP from misconfiguration.
+
+## Why Layer 2 Loops Are Catastrophic
+
+A Layer 2 network has no TTL (Time To Live) field in Ethernet frames. A unicast frame with an unknown destination MAC, or a broadcast frame, will be flooded out every port in the VLAN. In a loop, this flooding multiplies:
+
+1. Switch A floods a broadcast out all ports.
+2. Switch B receives it and floods it back to Switch A.
+3. Switch A receives it again and floods it again.
+4. This continues until the loop saturates the network at full line rate.
+
+This is a **broadcast storm**. The CPU on every switch in the loop reaches 100% processing BPDU overhead and flooded frames. The switch's MAC table fills with incorrect entries as it sees the same source MAC arriving on multiple ports simultaneously. Network collapses in seconds.
+
+STP prevents this by systematically blocking ports that would create loops.
+
+## STP Bridge Election
+
+STP elects one **Root Bridge** — the switch that becomes the tree's root. All paths in the loop-free topology are calculated relative to the root.
+
+**Root Bridge election:**
+1. All switches start believing they are the root.
+2. They exchange **BPDUs (Bridge Protocol Data Units)** containing their Bridge ID.
+3. Bridge ID = Priority (2 bytes) + MAC address (6 bytes). Lower Bridge ID wins.
+4. Default priority is 32768. With equal priorities, the lower MAC address wins.
+5. The switch with the lowest Bridge ID becomes the Root Bridge.
+
+**To control which switch becomes the root:**
+```
+spanning-tree vlan 10 priority 4096
+```
+Priority must be a multiple of 4096 (0, 4096, 8192, ... 61440). Lower priority wins.
+
+**Macro commands:**
+```
+spanning-tree vlan 10 root primary
+spanning-tree vlan 10 root secondary
+```
+`root primary` sets the priority to 24576 (or lower if needed to beat the current root). `root secondary` sets it to 28672.
+
+## Port Roles
+
+After root election, each non-root switch identifies its best path to the root:
+
+**Root Port (RP):** The port on each non-root switch with the lowest-cost path to the Root Bridge. One per switch. Always in forwarding state.
+
+**Designated Port (DP):** The port on each segment with the lowest-cost path to the Root Bridge. Responsible for forwarding traffic on that segment toward the root. One per segment. Always in forwarding state.
+
+**Non-Designated Port (Blocked):** Any port that is neither a root port nor a designated port. Placed in blocking state to prevent loops. Still receives BPDUs to detect topology changes.
+
+## Path Cost
+
+STP calculates path cost as the cumulative cost from a switch to the Root Bridge. Lower cost wins.
+
+| Link speed | STP cost (802.1D) |
+|------------|-------------------|
+| 10 Mbps | 100 |
+| 100 Mbps | 19 |
+| 1 Gbps | 4 |
+| 10 Gbps | 2 |
+| 100 Gbps | 1 |
+
+Path cost is the sum of costs on the way to the root. If Switch A has a direct 1G link to the root (cost 4) and an indirect path through Switch B via two 100M links (cost 19 + 19 = 38), the direct path wins.
+
+**Override interface cost:**
+```
+interface GigabitEthernet0/1
+ spanning-tree vlan 10 cost 2
+```
+
+## STP Port States (802.1D)
+
+802.1D ports cycle through five states when STP is enabled:
+
+| State | Forwards data? | Learns MACs? | Receives BPDUs? | Duration |
+|-------|---------------|--------------|-----------------|----------|
+| Blocking | No | No | Yes | 20s (Max Age) |
+| Listening | No | No | Yes | 15s (Forward Delay) |
+| Learning | No | Yes | Yes | 15s (Forward Delay) |
+| Forwarding | Yes | Yes | Yes | — |
+| Disabled | No | No | No | — |
+
+Total convergence time after a topology change: 20 + 15 + 15 = **50 seconds** in the worst case. This is acceptable for uplinks between infrastructure switches, but unacceptable for ports connected to end devices (hosts would timeout DHCP, 802.1X, or application sessions).
+
+## Rapid Spanning Tree (802.1w RSTP)
+
+RSTP replaces 802.1D's timer-based convergence with handshake-based negotiation. Convergence after a link failure drops from ~50 seconds to typically **1–3 seconds** for alternate path activation, and **sub-second** for direct proposal/agreement on point-to-point links.
+
+RSTP port roles add the **Alternate Port** (a backup root port, equivalent to 802.1D's blocked non-designated port on the path to the root) and **Backup Port** (a backup designated port on the same segment).
+
+RSTP port states collapse to three: **Discarding** (merges Blocking + Listening), **Learning**, and **Forwarding**.
+
+Cisco's implementation of RSTP is **Rapid-PVST+** (one RSTP instance per VLAN):
+```
+spanning-tree mode rapid-pvst
+```
+
+## Per-VLAN Spanning Tree (PVST+)
+
+Cisco's PVST+ runs a separate STP instance for each VLAN. This allows:
+- Different root bridges per VLAN (load balancing across redundant uplinks).
+- Different blocked ports per VLAN.
+
+**Load balancing example:**
+```
+! SW-CORE-1 is root for VLANs 10, 20, 30
+spanning-tree vlan 10,20,30 priority 4096
+
+! SW-CORE-2 is root for VLANs 40, 50, 60
+spanning-tree vlan 40,50,60 priority 4096
+```
+
+With each core switch as root for half the VLANs, both uplinks carry traffic for different VLANs — no uplink is idle.
+
+## PortFast
+
+PortFast bypasses STP's listening and learning states for access ports. A PortFast port transitions directly from blocking to forwarding when it comes up.
+
+```
+interface GigabitEthernet0/1
+ spanning-tree portfast
+```
+
+**Only enable PortFast on ports connected to end devices (PCs, servers, printers).** Never on ports connected to other switches. A switch connected to a PortFast port would immediately start sending BPDUs, which is fine — but a physical loop through a PortFast port bypasses STP's normal convergence and can cause a brief broadcast storm during the time it takes STP to detect and block the loop.
+
+Enable globally for all access ports:
+```
+spanning-tree portfast default
+```
+This enables PortFast on all access-mode ports. Ports in trunk mode are not affected.
+
+## BPDU Guard
+
+BPDU Guard shuts down a port the moment it receives a BPDU. It is designed for PortFast-enabled ports: an end device should never send BPDUs. If a BPDU arrives on a PortFast port, an unauthorised switch has been connected.
+
+```
+interface GigabitEthernet0/1
+ spanning-tree bpduguard enable
+```
+
+The port enters **err-disabled** state when triggered:
+```
+%SPANTREE-2-BLOCK_BPDUGUARD: Received BPDU on port GigabitEthernet0/1 with BPDU Guard enabled. Disabling port.
+%PM-4-ERR_DISABLE: bpduguard error detected on Gi0/1, putting Gi0/1 in err-disable state
+```
+
+To recover manually:
+```
+interface GigabitEthernet0/1
+ shutdown
+ no shutdown
+```
+
+To recover automatically (use carefully — the underlying problem should be fixed first):
+```
+errdisable recovery cause bpduguard
+errdisable recovery interval 300
+```
+
+Enable globally for all PortFast ports:
+```
+spanning-tree portfast bpduguard default
+```
+
+## Root Guard
+
+Root Guard prevents a port from becoming a root port. If a superior BPDU arrives on a Root Guard-enabled port, the port is placed in **root-inconsistent** state (blocking) rather than allowing the connected switch to claim root bridge status.
+
+```
+interface GigabitEthernet0/24
+ spanning-tree guard root
+```
+
+Apply Root Guard on ports facing devices that should never become the root — typically uplinks to distribution or access layer switches from the core.
+
+## BPDU Filter
+
+BPDU Filter stops a port from sending or receiving BPDUs. Use with caution:
+
+- Applied globally on PortFast ports: the port still listens for BPDUs. If it receives one, PortFast is removed and normal STP runs. This is the safe behaviour.
+- Applied per-interface: the port neither sends nor receives BPDUs. This effectively disables STP on that port — extremely dangerous on any port that could be part of a loop.
+
+```
+spanning-tree portfast bpdufilter default
+```
+
+Never apply BPDU Filter per-interface unless you fully understand the topology implications.
+
+## Troubleshooting STP
+
+**Identify the Root Bridge:**
+```
+show spanning-tree vlan 10
+```
+Look for `This bridge is the root` or `Root ID: Priority ... Address ...`. If an unexpected switch is the root, adjust priorities.
+
+**Check port roles and states:**
+```
+show spanning-tree vlan 10
+show spanning-tree vlan 10 detail
+```
+All ports should be in FWD (forwarding) or BLK (blocking) state. A port in LIS (listening) or LRN (learning) is transitioning — acceptable briefly. A port stuck in these states indicates a STP problem.
+
+**Topology change counter:**
+```
+show spanning-tree detail | include topology
+```
+High topology change counts indicate instability — ports repeatedly going up/down, or an unauthorised switch connected to an access port.
+
+**Find a MAC address:**
+```
+show mac address-table address 001a.2b3c.4d5e
+```
+If a MAC address is learned on an unexpected port, or on multiple ports, check for a loop or misconnected cable.
+
+**STP consistency:**
+```
+show interfaces trunk
+```
+Ensure VLANs are active and allowed on trunk ports. A VLAN that is not in the trunk's allowed list will not have a spanning tree instance on that link.

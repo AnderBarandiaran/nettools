@@ -1,0 +1,232 @@
+---
+title: "DHCP Configuration Guide — Cisco IOS Server, Relay, and Troubleshooting"
+description: "Complete guide to DHCP on Cisco IOS. Covers DHCP server configuration, pools, options, IP helper-address relay, exclusions, and troubleshooting DHCP failures."
+pubDate: 2026-04-01
+category: cisco
+tags: ["DHCP", "Cisco IOS", "ip helper-address", "network engineering", "IP addressing"]
+featured: false
+---
+
+# DHCP Configuration Guide — Cisco IOS
+
+DHCP (Dynamic Host Configuration Protocol) automates IP address assignment to hosts. Without DHCP, every device needs a manually configured IP address, subnet mask, default gateway, and DNS server — a management burden that scales poorly beyond a handful of devices. Cisco IOS can act as a DHCP server, relay DHCP requests across subnets using `ip helper-address`, or act as a DHCP client. This guide covers all three roles.
+
+## How DHCP Works — The DORA Sequence
+
+DHCP uses a four-message exchange known as DORA:
+
+**Discover:** The client, which has no IP address yet, broadcasts a DHCPDISCOVER message to 255.255.255.255 with source IP 0.0.0.0. The destination is the limited broadcast; the frame reaches every device on the local segment.
+
+**Offer:** The DHCP server responds with a DHCPOFFER containing an available IP address, subnet mask, lease duration, default gateway, DNS servers, and any other configured options.
+
+**Request:** The client broadcasts a DHCPREQUEST indicating it accepts the offered address. It broadcasts rather than unicasting so other DHCP servers on the segment know their offer was declined.
+
+**Acknowledge:** The server confirms the assignment with a DHCPACK. The client configures the offered IP address and begins using it.
+
+The client sends **broadcast** frames during DORA because it has no IP address yet. This is why DHCP does not work across routers by default — routers do not forward broadcasts. The `ip helper-address` configuration fixes this.
+
+## Cisco IOS DHCP Server Configuration
+
+### Define Exclusions First
+
+Before creating a DHCP pool, exclude any addresses that should not be dynamically assigned: router interfaces, servers, printers, and management interfaces.
+
+```
+ip dhcp excluded-address 192.168.1.1 192.168.1.10
+ip dhcp excluded-address 192.168.1.250 192.168.1.255
+```
+
+These exclusions remove the ranges .1–.10 and .250–.255 from the pool. Dynamic assignment will only use .11 through .249.
+
+### Create a DHCP Pool
+
+```
+ip dhcp pool USERS
+ network 192.168.1.0 255.255.255.0
+ default-router 192.168.1.1
+ dns-server 8.8.8.8 8.8.4.4
+ domain-name company.local
+ lease 1 0 0
+```
+
+`network` defines the subnet being served. All addresses in this subnet (minus exclusions) are available to lease.
+
+`default-router` sets the default gateway clients receive. This is typically the router interface for this subnet.
+
+`dns-server` provides up to eight DNS server addresses. List them in preference order.
+
+`domain-name` sets the DNS search domain. Clients append this to short hostnames during DNS lookups.
+
+`lease` sets the lease duration in `days hours minutes` format. `lease 1 0 0` = 1 day. `lease infinite` sets the lease to never expire (use only for static-like devices where you track assignments manually). Shorter leases (4–8 hours) work well in environments with frequent device changes; longer leases (1–7 days) reduce DHCP traffic on stable networks.
+
+### Multiple Pools
+
+Create one pool per subnet. Each pool automatically serves only the addresses in its declared network:
+
+```
+ip dhcp pool SERVERS
+ network 10.10.20.0 255.255.255.0
+ default-router 10.10.20.1
+ dns-server 10.10.20.5
+ domain-name company.local
+ lease 7
+
+ip dhcp pool VOIP
+ network 10.10.30.0 255.255.255.0
+ default-router 10.10.30.1
+ dns-server 8.8.8.8
+ option 150 ip 10.10.30.100
+ lease 1
+```
+
+Option 150 (`ip tftp-server-address`) is used by Cisco IP phones to find the TFTP server hosting firmware and configuration files. This is a common VoIP-specific DHCP option.
+
+### DHCP Options Reference
+
+| Option | Name | Common use |
+|--------|------|------------|
+| 3 | Router | Default gateway (set by `default-router`) |
+| 6 | DNS servers | DNS resolver addresses |
+| 15 | Domain name | DNS search suffix |
+| 43 | Vendor-specific | WAP controller address (varies by vendor) |
+| 66 | TFTP server name | Boot server for network devices |
+| 67 | Bootfile name | Boot filename for PXE |
+| 150 | TFTP server address | Cisco IP phone TFTP server |
+
+Custom options:
+```
+ip dhcp pool WIRELESS
+ network 10.10.40.0 255.255.255.0
+ default-router 10.10.40.1
+ dns-server 8.8.8.8
+ option 43 ascii "controller-address=10.10.40.200"
+```
+
+## Static DHCP Bindings
+
+For devices that need a predictable IP address but should still get configuration via DHCP (printers, servers), create a manual binding using the device's MAC address:
+
+```
+ip dhcp pool PRINTER-FINANCE
+ host 192.168.1.220 255.255.255.0
+ hardware-address 00a0.1234.5678
+ default-router 192.168.1.1
+ dns-server 8.8.8.8
+```
+
+The `host` keyword (instead of `network`) creates a single-address binding. When the device with MAC `00a0.1234.5678` sends a DHCP Discover, it always receives `192.168.1.220`.
+
+Important: also exclude this address from the dynamic pool:
+```
+ip dhcp excluded-address 192.168.1.220
+```
+
+Without the exclusion, another device might receive this address dynamically before the printer connects.
+
+## DHCP Relay — ip helper-address
+
+When hosts are on a different subnet from the DHCP server, the router interface that hosts connect to must be configured to forward DHCP broadcasts to the server:
+
+```
+interface GigabitEthernet0/1
+ ip address 192.168.10.1 255.255.255.0
+ ip helper-address 10.0.0.10
+```
+
+`ip helper-address 10.0.0.10` tells the router to forward broadcasts received on this interface as unicast packets to 10.0.0.10. This converts the DORA broadcast sequence into routable unicast packets. The router changes the source IP from 0.0.0.0 to its own interface IP (`192.168.10.1`) so the server knows which subnet to serve.
+
+Configure `ip helper-address` on each router interface that faces DHCP clients:
+
+```
+interface GigabitEthernet0/0
+ ip address 10.10.10.1 255.255.255.0
+ ip helper-address 10.0.0.10
+
+interface GigabitEthernet0/1
+ ip address 10.10.20.1 255.255.255.0
+ ip helper-address 10.0.0.10
+
+interface GigabitEthernet0/2
+ ip address 10.10.30.1 255.255.255.0
+ ip helper-address 10.0.0.10
+```
+
+The DHCP server at 10.0.0.10 sees requests arriving from 10.10.10.1, 10.10.20.1, and 10.10.30.1 as the gateway IP (`giaddr` field in DHCP). It selects the matching pool based on this IP and returns the appropriate address.
+
+## Router as DHCP Client
+
+For router interfaces that receive their IP from an upstream DHCP server (common for home/branch router WAN interfaces):
+
+```
+interface GigabitEthernet0/0
+ ip address dhcp
+ no shutdown
+```
+
+The router itself becomes a DHCP client on this interface and accepts whatever address the upstream server assigns.
+
+## Verifying DHCP Operation
+
+**Active leases:**
+```
+show ip dhcp binding
+```
+Shows IP address, client MAC, lease expiry, and binding type (dynamic vs. manual). An empty output when you expect leases means either no requests are being received, or the pool is exhausted.
+
+**Pool statistics:**
+```
+show ip dhcp pool
+show ip dhcp pool USERS
+```
+Shows pool name, range, currently in use, available addresses, and lease count. Critical for capacity planning: if "Leases In Use" approaches the pool size, addresses are about to run out.
+
+**DHCP server statistics:**
+```
+show ip dhcp server statistics
+```
+Shows message counters: Discover, Offer, Request, Acknowledge, Release, Decline, Bad request. Mismatched Discover and Offer counts indicate the server is rejecting or ignoring requests.
+
+**Conflict table:**
+```
+show ip dhcp conflict
+```
+When a DHCP server detects a conflict (a host responds to its ARP probe before assignment), it logs the conflicting address here and stops assigning it. Clear conflicts after investigation:
+```
+clear ip dhcp conflict *
+```
+
+## Troubleshooting DHCP Failures
+
+### Client shows 169.254.x.x (APIPA)
+
+The client attempted DHCP and received no response. Check:
+1. Is `ip helper-address` configured on the correct interface (the interface facing the client)?
+2. Does a route exist from the router to the DHCP server?
+3. Is the DHCP server configured with a pool for the client's subnet?
+4. Is the DHCP pool exhausted (`show ip dhcp pool`)?
+
+### Client receives wrong address (wrong subnet)
+
+The `ip helper-address` on the client's interface is pointing to the wrong server, or the DHCP server has a pool matching the wrong network. Verify the `giaddr` (gateway IP) field in captured DHCP packets matches the pool's configured `network`.
+
+### DHCP offer is never received
+
+Enable DHCP debug carefully:
+```
+debug ip dhcp server events
+debug ip dhcp server packets
+```
+
+Watch for incoming DISCOVER messages and outgoing OFFER messages. If DISCOVER arrives but OFFER is not sent, check:
+- Pool exhausted
+- Client's VLAN is excluded by the pool
+- Exclusion range covers all addresses in the pool
+
+Disable debug immediately after:
+```
+undebug all
+```
+
+### Devices with static IPs conflict with DHCP pool
+
+Run `show ip dhcp conflict`. Any devices with static IPs within the dynamic range will conflict. Either move them to the exclusion range or configure manual DHCP bindings. The `ping` command used during Cisco IOS DHCP assignment detects these conflicts and adds them to the conflict table, preventing duplicate assignment — but the conflicts must be cleared to reuse those addresses.

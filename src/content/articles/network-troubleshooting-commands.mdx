@@ -1,0 +1,243 @@
+---
+title: "Network Troubleshooting Commands — Cisco IOS and Linux Reference"
+description: "Essential network troubleshooting commands for Cisco IOS, Linux, and Windows. Covers ping, traceroute, show commands, packet capture, and systematic fault isolation methodology."
+pubDate: 2026-03-25
+category: cisco
+tags: ["troubleshooting", "Cisco IOS", "network commands", "ping", "traceroute", "show commands"]
+featured: false
+---
+
+# Network Troubleshooting Commands
+
+Effective network troubleshooting follows a method, not a sequence of random commands. The method is systematic fault isolation: start at Layer 1, confirm each layer before moving up, and form hypotheses based on evidence. This guide covers the commands that produce that evidence — on Cisco IOS, Linux, and Windows — and explains what to look for in each output.
+
+## The OSI Troubleshooting Framework
+
+Work bottom-up unless you have specific evidence pointing to a higher layer:
+
+1. **Layer 1 — Physical:** Is the cable plugged in? Is the interface up? Check link lights, transceiver type, cable integrity.
+2. **Layer 2 — Data Link:** Is the correct VLAN assigned? Is the trunk carrying the right VLANs? Are MAC addresses being learned?
+3. **Layer 3 — Network:** Is the IP address correct? Is the subnet mask correct? Does a route exist for the destination?
+4. **Layer 4 — Transport:** Is the port reachable? Is a firewall or ACL blocking the port?
+5. **Layer 7 — Application:** Is the service running? Is DNS resolving correctly?
+
+A common mistake is jumping to Layer 3 (ping, traceroute) before confirming Layer 2 is working. If a VLAN is misconfigured, ping will fail for a Layer 2 reason — but the output looks like a routing problem.
+
+## Cisco IOS Commands
+
+### Interface Status
+
+```
+show interfaces
+show interfaces GigabitEthernet0/0
+show ip interface brief
+```
+
+`show ip interface brief` is the fastest overview — one line per interface with IP address, status, and protocol. Status of "up/down" means the physical link is up but Layer 2 is failing (often a configuration mismatch on the other end). "Administratively down/down" means the interface has been shut down with `shutdown`.
+
+In the `show interfaces` output, look for:
+- **Input/output errors:** incrementing errors indicate cable, duplex mismatch, or hardware problems.
+- **CRC errors:** typically a signal integrity problem — bad cable, incorrect SFP, or auto-negotiation mismatch.
+- **Resets:** interface resets indicate hardware or driver problems.
+- **Input drops:** the interface is receiving more frames than the router can process — buffer overflow.
+
+### Routing Table
+
+```
+show ip route
+show ip route 192.168.1.0
+show ip route 192.168.1.1
+```
+
+`show ip route <specific address>` shows which entry would be used to route a packet to that address (longest-prefix match). If the output says "% Network not in table," the router has no route to that destination — it would drop the packet (or use a default route if one exists).
+
+Route source codes:
+- `C` — directly connected
+- `L` — local (the interface's own address, /32)
+- `S` — static
+- `D` — EIGRP
+- `O` — OSPF
+- `B` — BGP
+- `R` — RIP
+
+### ARP Table
+
+```
+show arp
+show ip arp 192.168.1.10
+```
+
+The ARP table maps IP addresses to MAC addresses for directly connected hosts. If an ARP entry is incomplete (shows "—" for MAC address), the router sent an ARP request but received no reply — the host is either down, on the wrong VLAN, or the IP is incorrect.
+
+### Switching Commands
+
+```
+show mac address-table
+show mac address-table address 00a1.b2c3.d4e5
+show mac address-table vlan 10
+show interfaces trunk
+show interfaces GigabitEthernet0/1 switchport
+show vlan brief
+show spanning-tree vlan 10
+```
+
+`show mac address-table` shows learned MAC-to-port mappings. If a host's MAC is not in the table, the switch has not seen a frame from that host — either it has not sent anything recently (check the aging timer) or the port is not connected correctly.
+
+`show spanning-tree vlan 10` shows the spanning tree state for each port. A port in BLK (blocking) or LIS (listening) state will not forward traffic — this is intentional to prevent loops. If a port is unexpectedly blocking, check whether there is a topology change causing STP to recalculate.
+
+### Connectivity Tests
+
+```
+ping 192.168.1.1
+ping 192.168.1.1 repeat 100
+ping 192.168.1.1 source GigabitEthernet0/0
+ping 192.168.1.1 size 1500
+```
+
+The `source` keyword specifies which IP address is used as the source of the pings. This matters when verifying that a specific path is working — pinging without specifying source uses the router's closest interface to the routing table, which may take a different path than you expect.
+
+Large MTU ping (`size 1500`) tests whether the path supports full-size frames. If large pings fail but small pings succeed, there is an MTU mismatch or fragmentation problem somewhere in the path.
+
+```
+traceroute 8.8.8.8
+traceroute 8.8.8.8 source GigabitEthernet0/0
+traceroute 8.8.8.8 probe 5
+```
+
+Traceroute shows each hop and the round-trip time. An asterisk (*) means the hop did not reply — either it rate-limits ICMP or the packets are being dropped. If you see asterisks at a consistent hop followed by subsequent hops responding, the router is rate-limiting ICMP but forwarding other traffic.
+
+### Access Control Lists
+
+```
+show ip access-lists
+show ip access-lists ACL-NAME
+```
+
+`show ip access-lists` shows each ACE with its match counters. Counters increment each time a packet matches that entry. Zero on an entry you expect to be hit indicates the traffic is not reaching the ACL (wrong interface or direction), or the match conditions are wrong.
+
+```
+show ip interface GigabitEthernet0/0
+```
+
+Look for: `Inbound access list is ACL-NAME` and `Outbound access list is not set`. ACLs must be applied in the correct direction — inbound (applied before routing) or outbound (applied after routing table lookup).
+
+## Linux Commands
+
+### Interface and Address
+
+```bash
+ip addr show
+ip addr show eth0
+ip link show
+```
+
+Look for `UP` in the interface flags (`<BROADCAST,MULTICAST,UP,LOWER_UP>`). `LOWER_UP` means the physical layer is up (link detected). `UP` without `LOWER_UP` means the interface is administratively up but no link is detected.
+
+The `inet` field shows the IPv4 address and prefix. The `inet6` field shows IPv6 addresses.
+
+### Routing
+
+```bash
+ip route show
+ip route get 8.8.8.8
+```
+
+`ip route get` shows exactly which route would be used for a specific destination, including the source address that would be used. This is the Linux equivalent of `show ip route <address>` on Cisco.
+
+### Connectivity
+
+```bash
+ping -c 4 192.168.1.1
+ping -c 4 -I eth0 192.168.1.1
+ping -c 4 -s 1472 192.168.1.1
+traceroute 8.8.8.8
+traceroute -n 8.8.8.8
+mtr --report 8.8.8.8
+```
+
+`-I eth0` specifies the source interface. `-s 1472` sends 1472-byte packets (1472 + 8 ICMP header + 20 IP header = 1500 byte MTU). `mtr` combines ping and traceroute — useful for identifying intermittent packet loss at specific hops.
+
+### ARP and Neighbour Cache
+
+```bash
+ip neigh show
+arp -n
+```
+
+If a host is reachable (in the neighbour cache with `REACHABLE` state) but you cannot ping it, the issue is above Layer 2.
+
+### Open Connections and Listening Ports
+
+```bash
+ss -tlnp
+ss -ulnp
+ss -s
+netstat -tlnp
+```
+
+`ss -tlnp` shows TCP listening sockets with the process name. Useful for verifying that a service is actually running and bound to the expected address and port. If nothing is listening on port 80, the web server is not running — not a network problem.
+
+### Packet Capture
+
+```bash
+tcpdump -i eth0 host 192.168.1.10
+tcpdump -i eth0 port 443
+tcpdump -i eth0 -w capture.pcap
+tcpdump -i any icmp
+```
+
+Packet capture is the ground truth. When you cannot determine from show commands whether traffic is reaching an interface, capture confirms it. Capture on both sides of a suspected problem point — if you see the packet arrive on the first interface but not on the second, the problem is between them.
+
+## Windows Commands
+
+```
+ipconfig /all
+route print
+arp -a
+netstat -an
+netstat -rn
+ping 192.168.1.1 -t
+tracert 8.8.8.8
+pathping 8.8.8.8
+nslookup google.com
+nslookup google.com 8.8.8.8
+```
+
+`pathping` combines traceroute and statistics — it sends 100 packets to each hop and reports loss percentages. More informative than tracert for intermittent problems.
+
+`nslookup <domain> <server>` tests DNS resolution using a specific resolver. If `nslookup google.com` fails but `nslookup google.com 8.8.8.8` succeeds, your default DNS server is the problem.
+
+## Systematic Fault Isolation Examples
+
+### Scenario: Host cannot ping its default gateway
+
+1. Check the host's IP address, subnet mask, and default gateway — is the gateway in the same subnet?
+2. Check the switch port: is it assigned to the correct VLAN?
+3. Check the gateway's SVI or interface — is it up?
+4. Capture on the gateway interface — is the ARP request arriving?
+
+### Scenario: Routing between two subnets fails
+
+1. From Router A, ping Router B's interface in each direction.
+2. Check `show ip route` on both routers — does each have a route to the other's subnet?
+3. Check for ACLs on the interfaces: `show ip interface` on the relevant interfaces.
+4. Try pinging with source address specified to test bidirectional reachability.
+
+### Scenario: Internet access fails for internal hosts
+
+1. Ping the default gateway from a host — is Layer 2/3 to the gateway working?
+2. On the edge router: `show ip route 0.0.0.0` — does a default route exist?
+3. Ping `8.8.8.8` from the router itself (using its public IP as source).
+4. Check NAT: `show ip nat translations` — are translations being created?
+5. If translations exist but DNS fails: check DNS server reachability and `ip name-server` configuration.
+
+## Logging and Error Messages
+
+Configure syslog timestamps to make correlation possible:
+```
+service timestamps log datetime msec
+logging buffered 16384 debugging
+show logging
+```
+
+Correlate interface errors, routing protocol adjacency changes, and STP topology changes to narrow down the time window when a fault occurred. The logs often reveal the root cause that no show command directly exposes.

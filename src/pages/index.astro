@@ -6,8 +6,18 @@ const jsonLd = {
   "@context": "https://schema.org",
   "@type": "WebSite",
   "name": "NetTools",
-  "description": "Professional network engineering tools: subnet calculators, VLSM planners, Cisco script generators",
+  "description": "Professional network engineering tools: subnet calculators, VLSM planners, Cisco script generators, IP converter, wildcard calculator, bandwidth calculator, CIDR summarizer",
   "url": Astro.url.origin,
+  "featureList": [
+    "IPv4 subnet calculator",
+    "VLSM planner",
+    "Cisco IOS script generator",
+    "IP address converter (decimal, binary, hex)",
+    "Wildcard mask calculator",
+    "Bandwidth and throughput calculator",
+    "CIDR summarizer and supernet calculator",
+    "Network topology simulator"
+  ]
 };
 
 const tools = [
@@ -29,6 +39,34 @@ const tools = [
     href: '/cisco-scripts/',
     name: 'Cisco IOS Scripts',
     description: 'Generate interface configurations, OSPF, static routes, and extended ACLs ready for console paste.',
+    badge: 'Free',
+    badgeClass: 'badge-go',
+  },
+  {
+    href: '/tools/ip-converter/',
+    name: 'IP Address Converter',
+    description: 'Convert IPv4 addresses between dotted-decimal, binary, hexadecimal, and 32-bit integer formats instantly.',
+    badge: 'Free',
+    badgeClass: 'badge-go',
+  },
+  {
+    href: '/tools/wildcard-calculator/',
+    name: 'Wildcard Mask Calculator',
+    description: 'Convert subnet masks to wildcard masks for Cisco ACLs and OSPF network statements.',
+    badge: 'Free',
+    badgeClass: 'badge-go',
+  },
+  {
+    href: '/tools/bandwidth-calculator/',
+    name: 'Bandwidth Calculator',
+    description: 'Calculate effective throughput with protocol overhead and estimate file transfer times at any link speed.',
+    badge: 'Free',
+    badgeClass: 'badge-go',
+  },
+  {
+    href: '/tools/cidr-summarizer/',
+    name: 'CIDR Summarizer',
+    description: 'Find the smallest supernet covering a list of networks, with gap detection and Cisco summary route config.',
     badge: 'Free',
     badgeClass: 'badge-go',
   },

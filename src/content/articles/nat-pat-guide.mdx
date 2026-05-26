@@ -1,0 +1,228 @@
+---
+title: "NAT and PAT Configuration Guide — Cisco IOS Network Address Translation"
+description: "Complete guide to NAT and PAT on Cisco IOS. Covers static NAT, dynamic NAT, PAT (overload), NAT debugging, and common misconfiguration issues with IP address translation."
+pubDate: 2026-04-05
+category: cisco
+tags: ["NAT", "PAT", "Cisco IOS", "network address translation", "overload", "routing"]
+featured: false
+---
+
+# NAT and PAT Configuration Guide — Cisco IOS
+
+Network Address Translation (NAT) maps private IP addresses to public IP addresses, allowing organisations to use RFC 1918 address space internally while presenting one or more routable public IPs to the internet. PAT (Port Address Translation), also called NAT overload, extends this by using port numbers to multiplex thousands of internal connections through a single public IP address. This guide covers Cisco IOS NAT configuration from first principles.
+
+## NAT Terminology
+
+**Inside local:** The IP address assigned to a host on the internal network. Typically an RFC 1918 address (10.x.x.x, 172.16–31.x.x, 192.168.x.x).
+
+**Inside global:** The public IP address that represents the inside host to the outside world. This is the address the internet sees.
+
+**Outside local:** The IP address of the outside host as it appears to the inside network. Usually the same as the outside global.
+
+**Outside global:** The actual IP address of the destination host on the internet.
+
+In most configurations, you only need to think about inside local and inside global. The distinction between outside local and outside global matters only in advanced NAT scenarios (NAT on both sides of a connection).
+
+**Inside interface:** The router interface connected to the internal network (toward the RFC 1918 side).
+
+**Outside interface:** The router interface connected to the internet (toward the public IP side).
+
+Every NAT configuration requires these two designations:
+```
+interface GigabitEthernet0/0
+ ip nat inside
+
+interface GigabitEthernet0/1
+ ip nat outside
+```
+
+Without these, NAT will not function — the router will not know which direction to translate.
+
+## Static NAT
+
+Static NAT creates a permanent one-to-one mapping between one inside local address and one inside global address. Use this for servers that must be reachable from the internet (web servers, mail servers, VPN endpoints).
+
+```
+ip nat inside source static 10.1.1.100 203.0.113.10
+```
+
+This maps internal host `10.1.1.100` to public IP `203.0.113.10` permanently in both directions. Inbound connections to `203.0.113.10` are translated to `10.1.1.100`. Outbound connections from `10.1.1.100` appear to originate from `203.0.113.10`.
+
+**Static NAT for specific ports only (static PAT):**
+```
+ip nat inside source static tcp 10.1.1.100 80 203.0.113.10 80
+ip nat inside source static tcp 10.1.1.100 443 203.0.113.10 443
+```
+
+This forwards only TCP port 80 and 443 to the internal web server. Other ports on `203.0.113.10` are not forwarded — useful when you have only one public IP but need to publish multiple internal services on different servers.
+
+**Multiple services, one public IP:**
+```
+ip nat inside source static tcp 10.1.1.100 80 203.0.113.10 80
+ip nat inside source static tcp 10.1.1.101 25 203.0.113.10 25
+ip nat inside source static tcp 10.1.1.102 443 203.0.113.10 443
+```
+
+Web server at .100, mail server at .101, and HTTPS service at .102 all share the same public IP, differentiated by port number.
+
+## Dynamic NAT
+
+Dynamic NAT creates temporary mappings from a pool of public IP addresses. Each internal host that initiates a connection gets an available IP from the pool for the duration of the connection.
+
+**Step 1 — Define the inside addresses to translate:**
+```
+ip access-list standard NAT-INSIDE
+ permit 10.1.0.0 0.0.255.255
+```
+
+**Step 2 — Define the pool of public addresses:**
+```
+ip nat pool PUBLIC-POOL 203.0.113.1 203.0.113.10 netmask 255.255.255.0
+```
+This pool contains 10 public IP addresses: .1 through .10.
+
+**Step 3 — Link the ACL to the pool:**
+```
+ip nat inside source list NAT-INSIDE pool PUBLIC-POOL
+```
+
+When a host in 10.1.x.x initiates a connection, NAT assigns the next available address from the pool. When the connection ends (or times out), the address returns to the pool.
+
+**Limitation:** Dynamic NAT requires one public IP per simultaneous connection. If all pool addresses are in use, new connections are dropped. Dynamic NAT is rarely used today; PAT is almost always preferable.
+
+## PAT — NAT Overload
+
+PAT extends dynamic NAT by adding port numbers to the translation. Thousands of internal hosts share a single (or a few) public IP addresses. The NAT table tracks connections by the combination of protocol, port, and IP.
+
+**PAT using a pool:**
+```
+ip access-list standard PAT-INSIDE
+ permit 192.168.0.0 0.0.255.255
+
+ip nat pool ISP-IP 203.0.113.1 203.0.113.1 netmask 255.255.255.252
+ip nat inside source list PAT-INSIDE pool ISP-IP overload
+```
+
+The `overload` keyword enables port-level multiplexing. Multiple inside addresses can map to the same public IP, differentiated by port.
+
+**PAT using the interface address (most common for single-IP connections):**
+```
+ip access-list standard PAT-INSIDE
+ permit 192.168.0.0 0.0.255.255
+
+ip nat inside source list PAT-INSIDE interface GigabitEthernet0/1 overload
+```
+
+`interface GigabitEthernet0/1 overload` tells IOS to use whatever public IP is currently assigned to Gi0/1 as the translated address. This automatically works with dynamic WAN IPs (DHCP from ISP) — the NAT pool never needs to be updated when the WAN IP changes.
+
+This is the standard configuration for branch office routers and home/small-business connections.
+
+## How PAT Tracks Connections
+
+When an internal host (10.1.1.50) connects to an external server (1.2.3.4:80):
+
+1. The host sends a TCP SYN from 10.1.1.50:**52000** to 1.2.3.4:80.
+2. The NAT router translates the source: **10.1.1.50:52000 → 203.0.113.1:1024** (assigns a new port number from available range).
+3. The NAT translation table entry: Protocol TCP, Inside Local 10.1.1.50:52000, Inside Global 203.0.113.1:1024, Outside Global 1.2.3.4:80.
+4. The server responds to 203.0.113.1:1024.
+5. The router looks up port 1024 in the NAT table, finds the entry, translates back to 10.1.1.50:52000, and forwards to the internal host.
+
+Each simultaneous connection gets a unique inside global port number. The practical limit is approximately 65,535 simultaneous connections per public IP address (limited by the TCP/UDP port space).
+
+## Full Example — Office Router
+
+```
+! Define inside/outside interfaces
+interface GigabitEthernet0/0
+ description LAN
+ ip address 192.168.1.1 255.255.255.0
+ ip nat inside
+
+interface GigabitEthernet0/1
+ description WAN
+ ip address dhcp
+ ip nat outside
+
+! ACL identifying inside addresses
+ip access-list standard RFC1918-INSIDE
+ permit 192.168.0.0 0.0.255.255
+ permit 10.0.0.0 0.255.255.255
+ permit 172.16.0.0 0.15.255.255
+
+! PAT using WAN interface address
+ip nat inside source list RFC1918-INSIDE interface GigabitEthernet0/1 overload
+
+! Default route toward ISP
+ip route 0.0.0.0 0.0.0.0 GigabitEthernet0/1
+```
+
+## Verifying NAT
+
+**Active translation table:**
+```
+show ip nat translations
+show ip nat translations verbose
+```
+
+Output shows: Protocol, Inside Local, Inside Global, Outside Local, Outside Global.
+
+The `verbose` option adds timing information — how long until the entry expires.
+
+**Translation statistics:**
+```
+show ip nat statistics
+```
+
+Shows: translation count, miss count (translations that could not be created), interface assignments, and pool utilisation. A high miss count with full pool utilisation indicates the pool is exhausted and connections are being dropped.
+
+**Clear specific translations:**
+```
+clear ip nat translation *
+clear ip nat translation inside 10.1.1.50 outside 8.8.8.8
+```
+
+Clearing translations forces active connections to re-establish. Use when investigating translation issues or when an internal host's IP changes.
+
+## Troubleshooting NAT
+
+### Packets reaching outside interface but not being translated
+
+Verify `ip nat inside` and `ip nat outside` are applied to the correct interfaces. Swap them and everything stops working — a common mistake when reconfiguring.
+
+```
+show ip interface GigabitEthernet0/0 | include NAT
+```
+Should show: "NAT: Inside source"
+
+### ACL not matching
+
+The access list used by NAT must permit the inside source addresses. Use `show ip access-lists` to verify hits:
+
+```
+show ip access-lists PAT-INSIDE
+```
+
+If the permit entry has zero matches, NAT is not seeing traffic that matches the ACL — either wrong interface, wrong direction, or ACL is not matching the address range.
+
+### NAT translations not appearing
+
+Enable NAT debug:
+```
+debug ip nat
+debug ip nat detailed
+```
+
+Look for `NAT: s=<source> d=<destination> [translation]` messages. If you see `NAT: route lookup failed` or `NAT: failed to create NAT entry`, the translation is failing and the output will indicate why.
+
+Always disable debug after:
+```
+undebug all
+```
+
+### Asymmetric routing with NAT
+
+NAT maintains state. If outbound traffic leaves through one interface but return traffic arrives on a different interface (asymmetric routing), the return traffic will not match any NAT translation entry and will be dropped. Ensure that all traffic for a given flow enters and exits through the same NAT-enabled path.
+
+### NAT and IPSEC/GRE interactions
+
+Some protocols embed IP addresses in their payload — H.323, FTP (active mode), SIP, PPTP. Standard NAT translates only the IP and TCP/UDP headers; the embedded addresses remain as private IPs and break the application. Cisco IOS includes NAT Application Layer Gateways (ALGs) for common protocols. For custom protocols, consider using passive FTP mode or SIP registrar proxies rather than relying on NAT ALG.

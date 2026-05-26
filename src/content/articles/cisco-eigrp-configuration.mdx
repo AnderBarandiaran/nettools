@@ -1,0 +1,208 @@
+---
+title: "Cisco EIGRP Configuration Guide — DUAL, Metrics, and Troubleshooting"
+description: "Complete guide to configuring EIGRP on Cisco IOS. Covers DUAL algorithm, composite metric, neighbour relationships, route summarisation, and troubleshooting commands."
+pubDate: 2026-03-20
+category: cisco
+tags: ["EIGRP", "Cisco IOS", "routing", "DUAL", "network engineering", "CCNP"]
+featured: false
+---
+
+# Cisco EIGRP Configuration Guide
+
+EIGRP (Enhanced Interior Gateway Routing Protocol) is a Cisco-developed distance-vector routing protocol that combines the fast convergence properties of link-state protocols with the low overhead of distance-vector. It uses the DUAL (Diffusing Update Algorithm) to guarantee loop-free paths and fast failover without full topology recalculations. This guide covers EIGRP configuration from basic neighbour formation through advanced tuning.
+
+## How EIGRP Works
+
+EIGRP maintains three tables on each router:
+
+**Neighbour table.** Records directly adjacent EIGRP routers, their hold timers, and the interface through which they are reachable. EIGRP routers exchange Hello packets to discover and maintain neighbourships.
+
+**Topology table.** Contains all routes learned from all EIGRP neighbours, not just the best routes. For each destination, the topology table stores the Feasible Distance (FD) and the Reported Distance (RD, also called Advertised Distance) from each neighbour.
+
+**Routing table.** Contains only the best routes (successors) and installs them into the IP routing table.
+
+### Successor and Feasible Successor
+
+For each destination, EIGRP identifies:
+
+- **Successor:** the neighbour offering the lowest-cost path. Installed in the routing table.
+- **Feasible Successor (FS):** a backup neighbour that satisfies the **Feasibility Condition**: its Reported Distance must be less than the current Feasible Distance through the successor. An FS provides a guaranteed loop-free backup path.
+
+When the successor fails, EIGRP instantly promotes the feasible successor to successor and updates the routing table — no route recalculation required. This is why EIGRP convergence is typically sub-second when a feasible successor exists.
+
+If no feasible successor exists, EIGRP enters **Active state** for that route and sends queries to all neighbours. The router waits for replies and recalculates. A router stuck in Active state for more than the active timer (default 3 minutes) declares the route **Stuck in Active (SIA)**, drops the neighbour that did not reply, and logs an error.
+
+## EIGRP Metric
+
+EIGRP uses a composite metric calculated from five K-values. By default, only bandwidth and delay are used (K1=1, K2=0, K3=1, K4=0, K5=0):
+
+```
+Metric = [K1 × bandwidth + (K2 × bandwidth)/(256 − load) + K3 × delay] × [K5/(reliability + K4)] × 256
+```
+
+With default K-values this simplifies to:
+
+```
+Metric = (10,000,000 / slowest_bandwidth_kbps + cumulative_delay_in_10μs_units) × 256
+```
+
+**Bandwidth:** uses the slowest link bandwidth along the entire path, in kilobits per second. A GigabitEthernet interface has bandwidth 1,000,000 Kbps; FastEthernet is 100,000 Kbps.
+
+**Delay:** cumulative sum of interface delay values along the path, measured in tens of microseconds. Default delays: FastEthernet = 100μs (value 10), GigabitEthernet = 10μs (value 1), Serial T1 = 20,000μs (value 2000).
+
+All EIGRP routers in the same AS must use identical K-values or neighbourships will not form.
+
+## Basic EIGRP Configuration
+
+```
+Router(config)# router eigrp 100
+Router(config-router)# network 10.0.0.0 0.0.0.255
+Router(config-router)# network 172.16.0.0 0.0.255.255
+Router(config-router)# no auto-summary
+```
+
+The autonomous system number (100 here) must match on all routers for them to become neighbours. The `network` command activates EIGRP on interfaces whose IP addresses fall within the specified range (address + wildcard mask).
+
+`no auto-summary` disables classful auto-summarisation, which would otherwise summarise subnets to their classful boundary at major network edges. In VLSM environments, auto-summary creates black holes. Always disable it.
+
+### Named EIGRP Configuration (Modern IOS)
+
+Named mode (IOS 15.x and later) provides address-family separation, per-interface tuning, and consistent syntax:
+
+```
+Router(config)# router eigrp ENTERPRISE
+Router(config-router)# address-family ipv4 unicast autonomous-system 100
+Router(config-router-af)# network 10.0.0.0 0.0.255.255
+Router(config-router-af)# no auto-summary
+Router(config-router-af)# af-interface GigabitEthernet0/0
+Router(config-router-af-interface)# passive-interface
+Router(config-router-af-interface)# exit-af-interface
+Router(config-router-af)# topology base
+Router(config-router-af-topology)# maximum-paths 4
+Router(config-router-af-topology)# variance 2
+```
+
+Named mode is preferred for new deployments. Classic and named EIGRP interoperate in the same AS.
+
+## Passive Interfaces
+
+A passive interface does not send or receive EIGRP Hello packets, so no neighbour relationship forms on it. Networks on passive interfaces are still advertised — the interface IP address is included in EIGRP updates to other neighbours.
+
+Use passive interfaces on all access-facing ports (ports connected to hosts, not routers):
+
+```
+router eigrp 100
+ passive-interface default
+ no passive-interface GigabitEthernet0/0
+ no passive-interface GigabitEthernet0/1
+```
+
+`passive-interface default` makes all interfaces passive. Then explicitly enable EIGRP on interfaces that should form neighbourships. This is safer than individually listing each access port.
+
+## Adjusting Hello and Hold Timers
+
+EIGRP sends Hello packets at a default interval of 5 seconds on Ethernet (60 seconds on slow links). The hold time is 3× the Hello interval by default (15 seconds on Ethernet).
+
+```
+interface GigabitEthernet0/0
+ ip hello-interval eigrp 100 2
+ ip hold-time eigrp 100 6
+```
+
+Shorter timers detect failures faster but increase CPU and bandwidth usage. Both ends of a link can have different Hello intervals — hold time is what matters for dead detection, and each router advertises its own hold time to its neighbour.
+
+## Route Summarisation
+
+EIGRP supports manual summarisation at any interface:
+
+```
+interface GigabitEthernet0/0
+ ip summary-address eigrp 100 10.1.0.0 255.255.0.0
+```
+
+This advertises a single summary route `10.1.0.0/16` out Gi0/0 instead of the individual component subnets. The summarising router creates a Null0 route for the summary (to prevent routing loops when the summary has no matching specific route):
+
+```
+ip route 10.1.0.0 255.255.0.0 Null0
+```
+
+**Summary route metric:** EIGRP uses the best metric among all component subnets as the metric for the summary. If the best component has metric 10,000, the summary is advertised with metric 10,000.
+
+## Load Balancing
+
+EIGRP supports both equal-cost and unequal-cost load balancing.
+
+**Equal-cost load balancing** (maximum-paths):
+```
+router eigrp 100
+ maximum-paths 4
+```
+Default is 4 paths; maximum is 16. When multiple routes to the same destination have identical metrics, traffic is distributed across all of them.
+
+**Unequal-cost load balancing** (variance):
+```
+router eigrp 100
+ variance 2
+```
+Variance multiplier defines how much worse an alternate path can be relative to the successor. A variance of 2 means any feasible successor with metric ≤ 2× the successor's metric is included in load balancing. The feasibility condition must still be satisfied — the path must be in the topology table as a feasible successor.
+
+## Authentication
+
+EIGRP supports MD5 authentication and (in named mode) SHA-256:
+
+```
+key chain EIGRP-KEYS
+ key 1
+  key-string Sup3rS3cr3t
+  accept-lifetime 00:00:00 Jan 1 2026 infinite
+  send-lifetime 00:00:00 Jan 1 2026 infinite
+
+interface GigabitEthernet0/0
+ ip authentication mode eigrp 100 md5
+ ip authentication key-chain eigrp 100 EIGRP-KEYS
+```
+
+Both neighbours must have matching keys. A key ID mismatch (key 1 on one side, key 2 on the other) will prevent neighbourship formation even if the key strings match.
+
+## Troubleshooting Commands
+
+**Verify neighbours:**
+```
+show ip eigrp neighbors
+```
+Shows neighbour address, interface, hold time, uptime, SRTT (smooth round-trip time), and queue counts. A neighbour with Q count > 0 for extended periods indicates a congested or slow interface.
+
+**Inspect topology table:**
+```
+show ip eigrp topology
+show ip eigrp topology all-links
+```
+`topology` shows only successors and feasible successors. `all-links` shows all known paths, including those that fail the feasibility condition. Use `all-links` when investigating why a backup path is not available.
+
+**Check a specific destination:**
+```
+show ip eigrp topology 10.1.2.0/24
+```
+
+**Routing table:**
+```
+show ip route eigrp
+```
+EIGRP routes appear with code `D` (from "DUAL"). Internal routes show `D`; external routes (redistributed into EIGRP) show `D EX`.
+
+**Debug (use with caution in production):**
+```
+debug eigrp packets
+debug eigrp fsm
+```
+`eigrp fsm` shows the DUAL finite state machine as it processes topology changes — useful for understanding why a route goes Active.
+
+## Common Configuration Mistakes
+
+**AS number mismatch.** Routers with different AS numbers will not form EIGRP neighbours. The `show ip eigrp neighbors` output will be empty. Verify with `show running-config | section router eigrp`.
+
+**K-value mismatch.** Different K-values prevent neighbourship. EIGRP logs "K-values mismatch" in `debug eigrp packets` output. Always leave K-values at defaults unless you have a specific reason to change them.
+
+**Network statement too narrow.** If `network 10.1.1.0 0.0.0.0` is used (wildcard all zeros, exact host match), only the interface with exactly that IP activates EIGRP. A wildcard of `0.0.0.255` matches the whole /24.
+
+**Auto-summary enabled in VLSM environment.** If `no auto-summary` is missing, EIGRP summarises `10.1.1.0/24` and `10.1.2.0/24` to `10.0.0.0/8` at the classful boundary. Hosts in different subnets appear reachable via the summary, but specific routes are missing, causing partial connectivity failures.

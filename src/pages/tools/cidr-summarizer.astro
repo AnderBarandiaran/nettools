@@ -1,0 +1,118 @@
+---
+import BaseLayout from '../../components/layout/BaseLayout.astro';
+import AdSlot from '../../components/ads/AdSlot.astro';
+import CIDRSummarizer from '../../components/islands/CIDRSummarizer';
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "CIDR Summarizer",
+  "applicationCategory": "NetworkingApplication",
+  "operatingSystem": "Web",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "description": "Free CIDR summarization tool. Find the smallest supernet that covers a list of IPv4 networks, with gap detection and Cisco IOS configuration examples.",
+  "featureList": [
+    "Supernet calculation for multiple networks",
+    "Gap detection between summarized networks",
+    "Efficiency percentage calculation",
+    "Cisco EIGRP summary-address configuration",
+    "Cisco OSPF area range configuration"
+  ]
+};
+---
+
+<BaseLayout
+  title="CIDR Summarizer — Supernet Calculator | NetTools"
+  description="Find the smallest supernet covering a list of IPv4 CIDR networks. Identifies address gaps, calculates efficiency, and generates Cisco EIGRP and OSPF summary route commands."
+  jsonLd={jsonLd}
+>
+  <nav class="max-w-6xl mx-auto px-4 pt-6 pb-2" aria-label="Breadcrumb">
+    <ol class="flex items-center gap-2 text-sm" style="color: var(--fg-3)">
+      <li><a href="/" class="hover:underline" style="color: var(--fg-3)">Home</a></li>
+      <li aria-hidden="true">/</li>
+      <li style="color: var(--fg-1); font-weight: 500">CIDR Summarizer</li>
+    </ol>
+  </nav>
+
+  <header class="max-w-6xl mx-auto px-4 pt-4 pb-8">
+    <h1 class="text-3xl sm:text-4xl font-bold mb-3" style="color: var(--fg-1)">
+      CIDR Summarizer
+    </h1>
+    <p class="text-lg max-w-2xl" style="color: var(--fg-2)">
+      Find the smallest supernet that covers a list of IPv4 networks. Detects address
+      gaps, calculates utilisation efficiency, and generates Cisco IOS summary route
+      commands for EIGRP and OSPF.
+    </p>
+  </header>
+
+  <div class="flex justify-center pb-6">
+    <AdSlot slot="leaderboard" />
+  </div>
+
+  <section class="max-w-6xl mx-auto px-4 pb-8">
+    <CIDRSummarizer client:load />
+  </section>
+
+  <div class="flex justify-center pb-8">
+    <AdSlot slot="rectangle" />
+  </div>
+
+  <article class="max-w-3xl mx-auto px-4 pb-16 prose prose-slate">
+    <h2>What is route summarization?</h2>
+    <p>Route summarization (also called route aggregation or supernetting) replaces
+    multiple specific routes with a single summary route that covers all of them.
+    The benefit is a smaller routing table, less routing protocol overhead, and
+    faster convergence — each router processes fewer routes and fewer updates.</p>
+    <p>The summary route is advertised by the summarizing router. Downstream routers
+    see only the summary and do not need to know about the individual component
+    networks behind it.</p>
+
+    <h2>How summarization is calculated</h2>
+    <p>The algorithm finds the shortest prefix that covers the entire range of addresses
+    in the input networks:</p>
+    <ol>
+      <li>Sort all input networks by their network address.</li>
+      <li>Find the lowest network address and the highest broadcast address across all inputs.</li>
+      <li>Find the smallest power-of-2 block that spans from the lowest to the highest address.</li>
+      <li>Align the block to a boundary of its own size (the network address must be a
+      multiple of the block size).</li>
+    </ol>
+    <p>Example: summarizing 10.1.0.0/24, 10.1.1.0/24, 10.1.2.0/24, 10.1.3.0/24.</p>
+    <ul>
+      <li>Lowest: 10.1.0.0. Highest broadcast: 10.1.3.255.</li>
+      <li>Range: 10.1.0.0 – 10.1.3.255 = 1,024 addresses = 2¹⁰.</li>
+      <li>Prefix: 32 − 10 = /22.</li>
+      <li>Summary: 10.1.0.0/22 (aligned — 10.1.0.0 is a multiple of 1024).</li>
+    </ul>
+
+    <h2>Address gaps</h2>
+    <p>If the input networks do not fill the entire supernet contiguously, the summary
+    route covers addresses that are not in any component network. This is usually
+    acceptable — traffic to gap addresses will be routed to the summarizing router, which
+    will drop it (no more-specific route exists) or forward it via a default route.</p>
+    <p>However, if another network legitimately uses those gap addresses elsewhere in
+    your routing domain, advertising the summary will attract traffic that should go
+    elsewhere. Always check the efficiency percentage and gap report before advertising
+    a summary route.</p>
+
+    <h2>EIGRP route summarization</h2>
+    <p>EIGRP summarization is configured per interface. The command advertises the
+    summary out the specified interface instead of the component routes:</p>
+    <pre><code>interface GigabitEthernet0/0
+ ip summary-address eigrp 100 10.1.0.0 255.255.252.0</code></pre>
+    <p>EIGRP automatically installs a Null0 route for the summary to prevent routing
+    loops when no more-specific route exists. Verify with
+    <code>show ip route 10.1.0.0</code> — you should see both the summary route and
+    the Null0 entry.</p>
+
+    <h2>OSPF inter-area summarization</h2>
+    <p>OSPF summarization is configured on the Area Border Router (ABR), which sits
+    between two OSPF areas. The <code>area range</code> command summarizes LSAs
+    going from one area into another:</p>
+    <pre><code>router ospf 1
+ area 1 range 10.1.0.0 255.255.252.0</code></pre>
+    <p>This summarizes all networks in area 1 that fall within 10.1.0.0/22 into a single
+    Type 3 Summary LSA advertised into the backbone (area 0). OSPF does not support
+    summarization within a single area — only at area boundaries.</p>
+  </article>
+</BaseLayout>

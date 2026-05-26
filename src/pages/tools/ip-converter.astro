@@ -1,0 +1,111 @@
+---
+import BaseLayout from '../../components/layout/BaseLayout.astro';
+import AdSlot from '../../components/ads/AdSlot.astro';
+import IPConverter from '../../components/islands/IPConverter';
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "IP Address Converter",
+  "applicationCategory": "NetworkingApplication",
+  "operatingSystem": "Web",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "description": "Free IP address converter. Convert IPv4 addresses between dotted-decimal, binary, hexadecimal, and 32-bit integer formats instantly.",
+  "featureList": [
+    "Dotted-decimal to binary conversion",
+    "Dotted-decimal to hexadecimal conversion",
+    "32-bit integer to IPv4 conversion",
+    "Bit-level octet breakdown",
+    "Instant conversion on input"
+  ]
+};
+---
+
+<BaseLayout
+  title="IP Address Converter — Binary, Hex, Decimal | NetTools"
+  description="Convert IPv4 addresses between dotted-decimal, binary, hexadecimal, and 32-bit integer formats. Instant conversion with octet-level bit breakdown."
+  jsonLd={jsonLd}
+>
+  <nav class="max-w-6xl mx-auto px-4 pt-6 pb-2" aria-label="Breadcrumb">
+    <ol class="flex items-center gap-2 text-sm" style="color: var(--fg-3)">
+      <li><a href="/" class="hover:underline" style="color: var(--fg-3)">Home</a></li>
+      <li aria-hidden="true">/</li>
+      <li style="color: var(--fg-1); font-weight: 500">IP Converter</li>
+    </ol>
+  </nav>
+
+  <header class="max-w-6xl mx-auto px-4 pt-4 pb-8">
+    <h1 class="text-3xl sm:text-4xl font-bold mb-3" style="color: var(--fg-1)">
+      IP Address Converter
+    </h1>
+    <p class="text-lg max-w-2xl" style="color: var(--fg-2)">
+      Convert IPv4 addresses between dotted-decimal, binary, hexadecimal, and 32-bit
+      integer representations. Enter any format and all others update instantly.
+    </p>
+  </header>
+
+  <div class="flex justify-center pb-6">
+    <AdSlot slot="leaderboard" />
+  </div>
+
+  <section class="max-w-6xl mx-auto px-4 pb-8">
+    <IPConverter client:load />
+  </section>
+
+  <div class="flex justify-center pb-8">
+    <AdSlot slot="rectangle" />
+  </div>
+
+  <article class="max-w-3xl mx-auto px-4 pb-16 prose prose-slate">
+    <h2>How IPv4 addresses are represented</h2>
+    <p>An IPv4 address is a 32-bit unsigned integer. The human-readable forms are all
+    different ways of writing the same underlying number:</p>
+    <ul>
+      <li><strong>Dotted decimal:</strong> four 8-bit octets, each written as a decimal
+      number 0–255, separated by periods. Example: <code>192.168.1.1</code>.</li>
+      <li><strong>Dotted binary:</strong> the same four octets, each expanded to 8 binary
+      digits. Example: <code>11000000.10101000.00000001.00000001</code>. Used when
+      working through subnet calculations by hand.</li>
+      <li><strong>Hexadecimal:</strong> each octet as two hex digits. Example:
+      <code>C0:A8:01:01</code>. Common in packet captures, Cisco debug output, and
+      low-level network programming.</li>
+      <li><strong>32-bit integer:</strong> the raw unsigned value. Example:
+      <code>3232235777</code>. Used in routing table comparisons, ACL evaluations, and
+      bitwise operations in code.</li>
+    </ul>
+
+    <h2>Converting manually</h2>
+    <p>To convert a decimal octet to binary, successively subtract powers of 2
+    starting from 128:</p>
+    <table>
+      <thead>
+        <tr><th>Bit value</th><th>128</th><th>64</th><th>32</th><th>16</th><th>8</th><th>4</th><th>2</th><th>1</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Octet 192</td>
+          <td>1</td><td>1</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td>
+        </tr>
+        <tr>
+          <td>Octet 168</td>
+          <td>1</td><td>0</td><td>1</td><td>0</td><td>1</td><td>0</td><td>0</td><td>0</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>192 = 128 + 64. 168 = 128 + 32 + 8. Each 1-bit means that power of 2 is included
+    in the sum; each 0-bit means it is not.</p>
+
+    <h2>Why binary matters for subnetting</h2>
+    <p>Subnet masks work by bitwise AND with the IP address. The network address is the
+    IP AND the mask — all host bits set to zero. The broadcast address sets all host bits
+    to one. Understanding the binary representation lets you verify subnet boundaries
+    without a calculator and catch common errors like non-contiguous masks.</p>
+
+    <h2>Hexadecimal in network engineering</h2>
+    <p>Hex appears in Cisco IOS debug output (<code>debug ip packet</code>), packet
+    captures (Wireshark shows IP addresses in hex in the raw bytes view), MAC addresses,
+    and IPv6 addresses. Being able to mentally convert a hex pair like <code>C0</code>
+    to 192 or <code>FF</code> to 255 is a useful skill for reading diagnostic output
+    quickly.</p>
+  </article>
+</BaseLayout>

@@ -1,0 +1,180 @@
+---
+title: "CCNA Subnetting Guide — Fast Subnetting Methods for the Exam"
+description: "Master IPv4 subnetting for CCNA. Covers magic number method, binary method, VLSM, and exam shortcuts for calculating network addresses, broadcast addresses, and host ranges quickly."
+pubDate: 2026-03-15
+category: subnetting
+tags: ["CCNA", "subnetting", "IPv4", "exam prep", "magic number", "VLSM"]
+featured: false
+---
+
+# CCNA Subnetting Guide — Fast Methods for the Exam
+
+Subnetting appears on every CCNA exam and throughout real network engineering work. The exam gives you roughly 90 seconds per question; you cannot afford to work through full binary conversions under time pressure. This guide covers the methods that actually work fast, including the magic number technique, the block size pattern, and how to approach VLSM questions systematically.
+
+## The Structure of a Subnet Question
+
+Every subnetting question reduces to one of three queries:
+
+1. **Given an IP and mask, find the network/broadcast/host range.**
+2. **Given a network and a host count requirement, choose the correct mask.**
+3. **Given a block and multiple departments, assign non-overlapping subnets (VLSM).**
+
+Learn to identify which type you are facing before starting to calculate. The approaches differ.
+
+## The Magic Number Method
+
+The fastest method for type-1 questions. Works on any octet.
+
+**Step 1:** Find the interesting octet — the one where the mask is neither 255 nor 0.
+
+**Step 2:** Calculate the magic number: `256 − (mask value in the interesting octet)`.
+
+**Step 3:** The network address is the largest multiple of the magic number that is ≤ the address value in the interesting octet.
+
+**Step 4:** Broadcast = network address + magic number − 1.
+
+**Example: 172.16.35.75/20**
+
+Subnet mask for /20: 255.255.240.0. Interesting octet: third (240).
+
+Magic number: 256 − 240 = **16**.
+
+Multiples of 16: 0, 16, 32, **48**... 48 > 35, so the largest multiple ≤ 35 is **32**.
+
+Network address: **172.16.32.0/20**
+Broadcast address: 172.16.32.0 + 16 − 1 → 172.16.47.255
+Usable range: 172.16.32.1 – 172.16.47.254
+Host count: 2¹² − 2 = **4,094**
+
+**Example: 10.5.200.14/22**
+
+Mask for /22: 255.255.252.0. Interesting octet: third (252).
+
+Magic number: 256 − 252 = **4**.
+
+Multiples of 4: 0, 4, 8, ..., **200**, 204... 200 is exactly divisible by 4 (200 ÷ 4 = 50).
+
+Network address: **10.5.200.0/22**
+Broadcast: 10.5.200.0 + 4 − 1 → 10.5.203.255
+Usable range: 10.5.200.1 – 10.5.203.254
+Hosts: 2¹⁰ − 2 = **1,022**
+
+The magic number method works in any octet. For a /11 mask (255.224.0.0), the interesting octet is the second (224). Magic number: 256 − 224 = 32. Multiples of 32: 0, 32, 64, 96... find which multiple the second octet falls in.
+
+## Block Sizes by Prefix
+
+Memorise these block sizes — the increments between subnet starting addresses:
+
+| Prefix | Mask last octet | Block size | Hosts |
+|--------|-----------------|------------|-------|
+| /24 | 0 | — | 254 |
+| /25 | 128 | 128 | 126 |
+| /26 | 192 | 64 | 62 |
+| /27 | 224 | 32 | 30 |
+| /28 | 240 | 16 | 14 |
+| /29 | 248 | 8 | 6 |
+| /30 | 252 | 4 | 2 |
+| /31 | 254 | 2 | 2* |
+| /32 | 255 | 1 | 1** |
+
+*RFC 3021 allows /31 for point-to-point links with no network/broadcast reservation.
+**/32 is a host route — a single address.
+
+Block sizes double as the prefix shrinks by 1. This doubling pattern extends across octets: /23 block size is 2 (in the third octet), /22 is 4, /21 is 8, /20 is 16, /19 is 32, /18 is 64, /17 is 128.
+
+## Choosing the Right Mask
+
+For type-2 questions: "How many hosts do you need? What is the minimum subnet size?"
+
+The formula: find the smallest power of 2 that is ≥ (required hosts + 2). The +2 accounts for the network and broadcast addresses.
+
+**Need 50 hosts:** 50 + 2 = 52. Next power of 2 ≥ 52 is 64 (2⁶). Prefix: 32 − 6 = **/26**.
+
+**Need 100 hosts:** 100 + 2 = 102. Next power of 2 ≥ 102 is 128 (2⁷). Prefix: 32 − 7 = **/25**.
+
+**Need 500 hosts:** 500 + 2 = 502. Next power of 2 ≥ 502 is 512 (2⁹). Prefix: 32 − 9 = **/23**.
+
+Powers of 2 worth memorising: 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096.
+
+The corresponding host counts (−2): 0, 2, 6, 14, 30, 62, 126, 254, 510, 1022, 2046, 4094.
+
+## Number of Subnets
+
+When you borrow bits from the host portion to create subnets, the number of subnets = 2ⁿ where n is the number of borrowed bits.
+
+**Given 192.168.1.0/24, create subnets using /27:**
+- Original prefix: /24. New prefix: /27.
+- Borrowed bits: 27 − 24 = 3.
+- Number of subnets: 2³ = **8**.
+- Block size: 32.
+- Subnets: .0, .32, .64, .96, .128, .160, .192, .224.
+
+**Given 10.0.0.0/8, apply /12:**
+- Borrowed bits: 12 − 8 = 4.
+- Subnets: 2⁴ = **16**.
+- Block size in the second octet: 256 − 240 = 16.
+- Second octets: 0, 16, 32, 48, 64, 80, 96, 112, 128, 144, 160, 176, 192, 208, 224, 240.
+
+## VLSM — Variable Length Subnet Masking
+
+VLSM questions give you a network block and multiple segments with different host requirements. The rule: assign the largest subnet first, then work downward.
+
+**Scenario:** You have 10.1.0.0/24.
+- Sales: 60 hosts
+- IT: 28 hosts
+- Finance: 12 hosts
+- Management: 4 hosts
+- WAN link 1: 2 hosts
+- WAN link 2: 2 hosts
+
+**Step 1 — Sort by size, largest first:** 60, 28, 12, 4, 2, 2.
+
+**Step 2 — Assign smallest sufficient subnet to each:**
+
+| Segment | Hosts needed | Min block | Prefix | Assigned network |
+|---------|-------------|-----------|--------|-----------------|
+| Sales | 60 | 64 (2⁶) | /26 | 10.1.0.0/26 |
+| IT | 28 | 32 (2⁵) | /27 | 10.1.0.64/27 |
+| Finance | 12 | 16 (2⁴) | /28 | 10.1.0.96/28 |
+| Management | 4 | 8 (2³) | /29 | 10.1.0.112/29 |
+| WAN link 1 | 2 | 4 (2²) | /30 | 10.1.0.120/30 |
+| WAN link 2 | 2 | 4 (2²) | /30 | 10.1.0.124/30 |
+
+Each subnet starts immediately after the previous broadcast address. Sales ends at .63, so IT starts at .64. IT ends at .95, so Finance starts at .96. And so on.
+
+**Verify: no overlap.** Each subnet's range must not overlap any other.
+- Sales: .0 – .63 ✓
+- IT: .64 – .95 ✓
+- Finance: .96 – .111 ✓
+- Management: .112 – .119 ✓
+- WAN 1: .120 – .123 ✓
+- WAN 2: .124 – .127 ✓
+
+Remaining: 10.1.0.128 – 10.1.0.255 (128 addresses, available for future expansion).
+
+## Exam Shortcuts and Common Traps
+
+**The /24 base.** Most CCNA subnetting starts with a /24 because the math stays in the fourth octet. Practice until fourth-octet magic numbers are automatic: /25 = 128, /26 = 64, /27 = 32, /28 = 16, /29 = 8, /30 = 4.
+
+**Recognise the mask from the last octet.** If a mask ends in 128, it's /25. 192 → /26. 224 → /27. 240 → /28. 248 → /29. 252 → /30. These are the only seven values a subnet mask octet can take (other than 0 and 255).
+
+**Host count formula.** Always: 2ⁿ − 2, where n is the number of host bits (32 minus the prefix length). The −2 is never optional for IPv4 unicast (unless using /31 for point-to-point links, per RFC 3021).
+
+**Which subnet contains the host?** Find the network address using the magic number. The host is in the subnet from that network address up to (network address + block size − 1).
+
+**Trap: confusing subnet count with host count.** When you borrow 3 bits you get 8 subnets (2³), each with fewer hosts. More subnets = smaller subnets = fewer hosts each. The total number of host addresses across all subnets is unchanged (only the two reserved per subnet are "lost" extra times).
+
+## Practice Problems
+
+Work these without a calculator:
+
+1. Host 172.30.14.200/20. What is the network address?
+2. You need 90 hosts per subnet. What is the minimum prefix length?
+3. Given 192.168.5.0/24, how many /28 subnets can you create? How many hosts per subnet?
+4. Assign VLSM from 10.0.0.0/24 for: 100 hosts, 50 hosts, 25 hosts, 2 hosts.
+
+**Answers:**
+1. Magic number: 256 − 240 = 16. Third octet 14: largest multiple of 16 ≤ 14 is 0. Network: **172.30.0.0/20**. (Broadcast: 172.30.15.255.)
+2. 90 + 2 = 92. Next power of 2 ≥ 92 is 128 = 2⁷. Prefix: 32 − 7 = **/25**.
+3. Borrowed bits: 28 − 24 = 4. Subnets: 2⁴ = **16**. Hosts per subnet: 2⁴ − 2 = **14**.
+4. 100 hosts → /25 (126 usable): **10.0.0.0/25**. 50 hosts → /26 (62 usable): **10.0.0.128/26**. 25 hosts → /27 (30 usable): **10.0.0.192/27**. 2 hosts → /30 (2 usable): **10.0.0.224/30**.
