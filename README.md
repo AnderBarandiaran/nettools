@@ -1,44 +1,105 @@
-# Astro Starter Kit: Minimal
+# NetTools — Network Engineering Toolkit
 
-```sh
-pnpm create astro@latest -- --template minimal
+[![CI](https://github.com/AnderBarandiaran/nettools/actions/workflows/ci.yml/badge.svg)](https://github.com/AnderBarandiaran/nettools/actions/workflows/ci.yml)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+
+Professional-grade network tools for network engineers. Free, no login required, runs entirely in the browser.
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  NetTools — Network Engineering Toolkit                  │
+│                                                          │
+│  🔧 Subnet Calculator     📐 VLSM Planner               │
+│  💻 Cisco IOS Generator   🗺  Topology Simulator         │
+│  🔢 IP Converter          🎭 Wildcard Mask Calc          │
+│  📊 Bandwidth Calculator  🌐 CIDR Summarizer             │
+└─────────────────────────────────────────────────────────┘
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+## Live Demo
 
-## 🚀 Project Structure
+**[https://nettools.engineer](https://nettools.engineer)**
 
-Inside of your Astro project, you'll see the following folders and files:
+## Tools Included
 
-```text
-/
-├── public/
+| Tool | Description |
+|------|-------------|
+| **Subnet Calculator** | IPv4 CIDR calculator with wildcard masks, broadcast address, host range, and binary representation |
+| **VLSM Planner** | Variable Length Subnet Masking allocator — plan multi-subnet networks optimally |
+| **Cisco IOS Script Generator** | Generate interface configs, OSPF, ACLs, VLANs, DHCP, and NAT configurations |
+| **Network Topology Simulator** | Drag-and-drop network designer with automatic IP assignment |
+| **IP Address Converter** | Convert between decimal, binary, hexadecimal, and 32-bit integer representations |
+| **Wildcard Mask Calculator** | Compute wildcard masks for ACLs and OSPF network statements |
+| **Bandwidth Calculator** | Calculate throughput, transfer times, and bandwidth requirements |
+| **CIDR Route Summarizer** | Aggregate multiple prefixes into a supernet summary route |
+
+## Tech Stack
+
+- **[Astro 4](https://astro.build)** — Static Site Generation with zero-JS-by-default
+- **React** — Interactive islands for tool components
+- **TypeScript** — End-to-end type safety
+- **Tailwind CSS** — Utility-first styling
+- **[Cloudflare Pages](https://pages.cloudflare.com)** — Global CDN hosting
+- **GitHub Actions** — CI/CD pipeline (build + test on every push)
+
+## Getting Started
+
+```bash
+git clone https://github.com/AnderBarandiaran/nettools.git
+cd nettools
+pnpm install
+pnpm dev
+```
+
+The dev server starts at `http://localhost:4321`.
+
+## Running Tests
+
+```bash
+pnpm test          # Unit tests (127 tests via Vitest)
+pnpm test:e2e      # End-to-end tests with Playwright
+pnpm build         # Production build
+```
+
+## Project Structure
+
+```
+nettools/
 ├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
+│   ├── lib/network/          # Pure network logic (no UI dependencies)
+│   │   ├── ipv4.ts           # IPv4 address manipulation, CIDR math
+│   │   ├── vlsm.ts           # VLSM allocation algorithm
+│   │   └── cisco.ts          # Cisco IOS config generation
+│   ├── components/
+│   │   ├── islands/          # React interactive components (client-side)
+│   │   ├── layout/           # Astro layout components
+│   │   └── ads/              # Ad slot components
+│   ├── content/articles/     # MDX articles for SEO
+│   └── pages/                # Astro file-based routes
+│       ├── subnetting/       # Subnet calculator & VLSM planner
+│       ├── cisco-scripts/    # IOS script generator
+│       └── topology/         # Network topology simulator
+├── tests/
+│   ├── unit/                 # Vitest unit tests for network logic
+│   └── e2e/                  # Playwright end-to-end tests
+└── public/                   # Static assets
 ```
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+The network logic in `src/lib/network/` is framework-agnostic and thoroughly tested — it can be used independently of the UI.
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+## Contributing
 
-Any static assets, like images, can be placed in the `public/` directory.
+Pull requests are welcome! Please:
 
-## 🧞 Commands
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/your-tool`)
+3. Run tests before submitting (`pnpm test && pnpm build`)
+4. Open a pull request describing what you added
 
-All commands are run from the root of the project, from a terminal:
+For major changes, please open an issue first to discuss the direction.
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `pnpm install`             | Installs dependencies                            |
-| `pnpm dev`             | Starts local dev server at `localhost:4321`      |
-| `pnpm build`           | Build your production site to `./dist/`          |
-| `pnpm preview`         | Preview your build locally, before deploying     |
-| `pnpm astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `pnpm astro -- --help` | Get help using the Astro CLI                     |
+## License
 
-## 👀 Want to learn more?
+GPL v3 — see [LICENSE](LICENSE) file.
 
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
-"# nettools" 
+Copyright (C) 2024 Ander Barandiaran
