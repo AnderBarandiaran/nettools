@@ -1,0 +1,207 @@
+---
+title: "IPv6 Subnetting Guide — Prefixes, Addressing, and Configuration"
+description: "Practical guide to IPv6 subnetting. Learn IPv6 address types, prefix notation, how to subnet a /48 allocation, and configure IPv6 on Cisco IOS routers."
+pubDate: 2026-02-25
+category: subnetting
+tags: ["IPv6", "subnetting", "networking", "CIDR", "Cisco IOS"]
+featured: false
+---
+
+# IPv6 Subnetting Guide
+
+IPv6 was designed to solve IPv4 exhaustion, but its 128-bit address space changes how network engineers think about subnetting. The fundamental logic is the same — identify network bits and host bits, allocate top-down — but the scale and conventions are different. This guide covers everything a practising network engineer needs to work confidently with IPv6 addressing.
+
+## IPv6 Address Structure
+
+An IPv6 address is 128 bits written as eight groups of four hexadecimal digits, separated by colons:
+
+```
+2001:0db8:85a3:0000:0000:8a2e:0370:7334
+```
+
+Two compression rules reduce this verbosity:
+
+**Rule 1 — Leading zeros in a group can be omitted:**
+`0db8` becomes `db8`, `0000` becomes `0`.
+
+**Rule 2 — One contiguous run of all-zero groups can be replaced with `::`:**
+The address above becomes `2001:db8:85a3::8a2e:370:7334`. The `::` represents the two consecutive groups of all zeros.
+
+The `::` shorthand can only be used once in an address. `2001::db8::1` is ambiguous and invalid.
+
+**Prefix notation** works the same way as CIDR. `2001:db8::/32` means the first 32 bits are the network prefix; the remaining 96 bits are available for subnets and hosts.
+
+## IPv6 Address Types
+
+IPv6 eliminates broadcast entirely. Instead, it uses several distinct address types:
+
+**Global Unicast Address (GUA):** The equivalent of a public IPv4 address. Currently assigned from `2000::/3` (addresses beginning with binary `001`). These are routable on the public internet. ISPs assign customers a /48 or /56 prefix from this space.
+
+**Link-Local Address:** `fe80::/10`. Every IPv6-capable interface automatically generates a link-local address using the EUI-64 algorithm (derived from the MAC address) or a random value. Link-local addresses are never forwarded by routers; they are used only for communication on the directly-attached link (neighbour discovery, router advertisements).
+
+**Loopback:** `::1/128`. The equivalent of `127.0.0.1` in IPv4. A packet sent to `::1` is processed locally; it never leaves the device.
+
+**Unspecified Address:** `::` or `0:0:0:0:0:0:0:0`. Used as a source address when an interface has no assigned address — for example, in DHCPv6 solicit messages or during stateless address autoconfiguration (SLAAC) before an address is confirmed.
+
+**Multicast:** `ff00::/8`. All IPv6 multicast addresses start with `ff`. Important well-known multicast addresses:
+- `ff02::1` — All nodes on the local link
+- `ff02::2` — All routers on the local link
+- `ff02::5` — All OSPF routers
+- `ff02::6` — OSPF Designated Routers
+- `ff02::9` — All RIPng routers
+
+**Unique Local Address (ULA):** `fc00::/7` (in practice, `fd00::/8`). These are the IPv6 equivalent of RFC 1918 private addresses. Not globally routable, intended for internal use. Unlike RFC 1918, the standard recommends generating a random 40-bit site prefix within `fd00::/8` to minimise the chance of overlap when merging two ULA-addressed networks.
+
+## Key Differences from IPv4
+
+**No broadcast.** Broadcast in IPv4 is replaced by specific multicast groups in IPv6. A router looking for a neighbour's MAC address uses NDP (Neighbour Discovery Protocol) with multicast to `ff02::1:ffxx:xxxx` (solicited-node multicast) instead of ARP broadcast.
+
+**No ARP.** NDP (RFC 4861) handles address-to-MAC resolution using ICMPv6. The equivalent of `arp -a` in IPv6 is `show ipv6 neighbors` on Cisco IOS.
+
+**SLAAC — Stateless Address Autoconfiguration.** Hosts can configure their own global unicast address without a DHCP server. The router advertises its prefix (via Router Advertisement messages), and the host appends a host identifier (from EUI-64 or a random value per RFC 7217) to form a complete /64 address. This works only when the prefix length is exactly /64.
+
+**Link-local is always present.** Every interface has a link-local address regardless of whether a GUA is configured. This is used by routing protocols (OSPFv3, EIGRP for IPv6) as the next-hop address in IPv6 routes.
+
+**No NAT (by design).** IPv6 was designed for end-to-end connectivity without address translation. With sufficient public address space, every device can have a globally unique address. NAT66 (IPv6-to-IPv6 translation) exists but is discouraged.
+
+## How IPv6 Subnetting Works
+
+The standard allocation hierarchy for IPv6:
+
+| Level | Prefix | Managed by |
+|-------|--------|-----------|
+| IANA | /23 | Internet Assigned Numbers Authority |
+| RIR | /32 | Regional Internet Registry (ARIN, RIPE, etc.) |
+| ISP | /32 – /48 | Internet Service Provider |
+| Customer | /48 – /56 | Enterprise organisation |
+| Site | /48 | One per major site |
+| VLAN/Subnet | /64 | One per network segment |
+| Host | /128 | One per interface (for static assignments) |
+
+**The /48-to-/64 rule:** A customer receives a /48. That leaves 16 bits between the /48 and /64 prefix. 2^16 = 65,536 subnets, each a /64. A single enterprise can have 65,536 distinct /64 network segments from a single /48 allocation — enough for every VLAN in every building on every floor of a large campus, with room to spare for a century.
+
+**Why /64?** SLAAC requires exactly /64 subnets because the interface identifier is exactly 64 bits. Even when SLAAC is not used, using /64 universally simplifies planning: you never need to calculate hosts-per-subnet. Every LAN segment gets a /64, period.
+
+## Subnetting a /48 Allocation
+
+Suppose an organisation has been assigned `2001:db8:abcd::/48`. The 16 subnet bits (bits 49–64) can be used to create up to 65,536 /64 subnets.
+
+A structured allocation:
+
+| Range | Purpose |
+|-------|---------|
+| `2001:db8:abcd:0000::/64` – `2001:db8:abcd:00ff::/64` | Site 1 (256 subnets) |
+| `2001:db8:abcd:0100::/64` – `2001:db8:abcd:01ff::/64` | Site 2 (256 subnets) |
+| `2001:db8:abcd:0200::/64` – `2001:db8:abcd:02ff::/64` | Site 3 |
+| ... | ... |
+| `2001:db8:abcd:ff00::/64` – `2001:db8:abcd:ffff::/64` | Last site allocation |
+
+Within Site 1's allocation (`0000` through `00ff`), you could further structure:
+- `0001`: User VLAN 1
+- `0002`: User VLAN 2
+- `0010`: Server VLAN
+- `0020`: Management VLAN
+- `0030` – `003f`: DMZ subnets
+- `00fe`: Point-to-point WAN links
+- `00ff`: Loopback addresses
+
+Writing these out:
+- User VLAN 1: `2001:db8:abcd:0001::/64`
+- Server VLAN: `2001:db8:abcd:0010::/64`
+- Management: `2001:db8:abcd:0020::/64`
+
+## Point-to-Point Links in IPv6
+
+For point-to-point links, IPv6 best practice uses /127 (per RFC 6164), analogous to IPv4 /31. This prevents the "ping-pong attack" possible with /64 point-to-point links, where a forged packet to the subnet-router anycast address could loop between the two routers.
+
+```
+interface Serial0/0/0
+ ipv6 address 2001:db8:abcd:fffe::0/127
+
+! Peer uses:
+interface Serial0/0/0
+ ipv6 address 2001:db8:abcd:fffe::1/127
+```
+
+For loopback interfaces, use /128 (the single-host equivalent):
+```
+interface Loopback0
+ ipv6 address 2001:db8:abcd:ffff::1/128
+```
+
+## Common Prefix Lengths
+
+| Prefix | Common use |
+|--------|-----------|
+| /23 – /24 | RIR allocation to ISP |
+| /32 | ISP's allocation |
+| /48 | Standard customer/enterprise allocation |
+| /52 | Large customer with many sites |
+| /56 | Residential or small business ISP customer |
+| /64 | Standard LAN segment (required for SLAAC) |
+| /127 | Point-to-point links (RFC 6164) |
+| /128 | Loopback interfaces, static host routes |
+
+## Cisco IOS Configuration
+
+**Enable IPv6 routing (required on routers):**
+```
+ipv6 unicast-routing
+```
+Without this command, the router will not forward IPv6 packets between interfaces.
+
+**Assign an IPv6 address to an interface:**
+```
+interface GigabitEthernet0/0
+ ipv6 address 2001:db8:abcd:0001::1/64
+ ipv6 enable
+ no shutdown
+```
+
+The `ipv6 enable` command activates link-local addressing on the interface without assigning a global unicast address. Routing protocols that use link-local addresses (like OSPFv3) require this on all IPv6-participating interfaces.
+
+**Assign an address using EUI-64 (auto-generate host portion):**
+```
+interface GigabitEthernet0/0
+ ipv6 address 2001:db8:abcd:0001::/64 eui-64
+```
+The router derives the lower 64 bits from the interface MAC address using the EUI-64 algorithm. Useful for automatic address assignment but produces an unpredictable host portion — avoid on router interfaces that others need to reference by address.
+
+**Static route:**
+```
+ipv6 route 2001:db8::/32 2001:db8:abcd:fffe::1
+```
+
+**Default route:**
+```
+ipv6 route ::/0 GigabitEthernet0/0
+```
+
+**Show commands:**
+```
+show ipv6 interface GigabitEthernet0/0
+```
+Shows all IPv6 addresses assigned to the interface (global unicast, link-local), and the interface's participation in multicast groups.
+
+```
+show ipv6 route
+```
+Displays the IPv6 routing table. Route types: `L` for local (the interface address itself as a /128), `C` for connected networks, `S` for static, `O` for OSPF, `B` for BGP.
+
+```
+show ipv6 neighbors
+```
+Displays the IPv6 neighbour cache — the IPv6 equivalent of the ARP table.
+
+```
+ping ipv6 2001:db8:abcd:0002::1 source GigabitEthernet0/0
+```
+IPv6 ping with explicit source interface.
+
+## Transition Considerations for IPv4 Engineers
+
+The most common adjustment for engineers moving from IPv4 to IPv6 is accepting that address conservation is no longer the goal. In IPv4, you carefully allocate /29s and /30s to save addresses. In IPv6, every LAN gets a /64 regardless of how many hosts it has — even if it has only two. Address space is not the constraint.
+
+Planning documents should express IPv6 addresses in full and compressed notation side by side until the team is comfortable reading hex. Tooling like this subnet calculator helps verify prefix boundaries and host address ranges during the learning curve.
+
+The key operational differences to internalise: no broadcast (use multicast groups), no ARP (use NDP), always check for link-local reachability before suspecting routing issues, and enable `ipv6 unicast-routing` or packets won't be forwarded.

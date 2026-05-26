@@ -1,0 +1,152 @@
+---
+title: "Enterprise Network Design Principles — Hierarchical Model and Best Practices"
+description: "Learn the fundamentals of enterprise network design using the three-layer hierarchical model. Covers core, distribution, and access layers with IP addressing strategies."
+pubDate: 2026-02-20
+category: general
+tags: ["network design", "enterprise networking", "hierarchical model", "best practices", "CCNP"]
+featured: false
+---
+
+# Enterprise Network Design Principles
+
+Network design is the process of translating business requirements into an infrastructure architecture that is reliable, scalable, and maintainable. Good design decisions are invisible to users; poor ones generate incidents at 2 a.m. This guide covers the established principles for enterprise network design, with practical guidance for common architectural decisions.
+
+## The Three-Layer Hierarchical Model
+
+Cisco's hierarchical network model divides a campus network into three distinct layers, each with a specific function. This separation makes the network easier to design, manage, troubleshoot, and scale.
+
+### Core Layer
+
+The core carries traffic between distribution-layer sites or buildings at maximum speed. Its job is pure forwarding — no policy, no filtering, no service insertion. Traffic must pass through the core with minimum latency and maximum throughput.
+
+Core layer characteristics:
+- No access control lists (ACLs slow down forwarding)
+- No spanning tree topology changes — redundant, loop-free topology achieved through Layer 3 routing
+- High-speed, low-latency switches (typically 40G or 100G fiber)
+- Full mesh or partial mesh between core nodes for redundancy
+- IP routing between distribution blocks
+- Fast convergence protocols (OSPF or IS-IS with aggressive timers, or EIGRP)
+
+The core layer never directly connects to end-user devices. If a port on a core switch needs to connect to a workstation, the design is wrong.
+
+### Distribution Layer
+
+The distribution layer is the policy enforcement point. It aggregates uplinks from access-layer switches and provides services before traffic reaches the core. This is where intelligent decisions happen.
+
+Distribution layer responsibilities:
+- Inter-VLAN routing (Layer 3 switching between VLANs from the access layer)
+- VLAN boundary definition (where VLANs terminate and are routed)
+- Redundant uplinks to the core (typically two uplinks, one per core switch for redundancy)
+- First-hop redundancy protocols: HSRP, VRRP, or GLBP for gateway failover
+- Quality of Service (QoS) policy: marking, queuing, policing at the edge of the campus
+- ACL enforcement for inter-VLAN security
+- Summarisation: aggregating access-layer routes before advertising to the core
+
+The distribution layer typically uses high-density, high-performance Layer 3 switches. Redundant pairs of distribution switches in each building or campus zone are standard practice.
+
+### Access Layer
+
+The access layer is where end-user devices connect. Access layer switches provide port-level services:
+- VLAN assignment (access ports per VLAN)
+- Power over Ethernet (PoE) for VoIP phones, wireless access points, IP cameras
+- 802.1X authentication for device identity and network access control
+- Port security: MAC address limiting, DHCP snooping, Dynamic ARP Inspection
+- Spanning Tree Protocol: PortFast and BPDU Guard on user-facing ports
+- Storm control on access ports to prevent broadcast floods from degrading shared segments
+
+Access layer switches have many 1G or 2.5G downlinks and 10G or 25G uplinks to the distribution layer. Uplink oversubscription ratios of 4:1 to 8:1 are typical for user VLANs; server-facing ports use 1:1 or 2:1.
+
+## Two-Tier vs Three-Tier Architecture
+
+The full three-layer model is appropriate for large campus environments with multiple buildings or thousands of users. For smaller deployments, a two-tier (collapsed core) architecture eliminates the dedicated core layer, combining core and distribution functions into the same switches.
+
+**Use three-tier when:**
+- Multiple buildings or geographically spread campus
+- More than 1,000 users
+- Data center traffic requires dedicated high-speed backplane
+- Traffic patterns require traffic segmentation between distribution blocks
+
+**Use two-tier (collapsed core) when:**
+- Single building with one wiring closet per floor
+- Fewer than 500 users
+- Simpler management and lower cost outweigh flexibility
+
+The two-tier model has its own risks: the collapsed core/distribution switches are a single failure domain. Redundant pairs are still essential.
+
+## IP Addressing Strategies
+
+A well-structured IP addressing plan makes routing, filtering, troubleshooting, and documentation significantly easier. The key principle: group addresses by function and location, then summarise.
+
+**Allocation by layer:**
+
+| Layer | Block size | Example |
+|-------|-----------|---------|
+| Per region | /12 | 10.0.0.0/12 (Region A), 10.16.0.0/12 (Region B) |
+| Per site/building | /16 | 10.0.0.0/16 (HQ), 10.1.0.0/16 (Branch A) |
+| Per function | /20 | 10.0.0.0/20 (User), 10.0.16.0/20 (Servers), 10.0.32.0/20 (Infra) |
+| Per VLAN | /24 | 10.0.0.0/24 (VLAN 10 — Sales), 10.0.1.0/24 (VLAN 20 — Finance) |
+
+With this structure, `10.0.0.0/16` summarises the entire HQ site in the routing table. The distribution switches in HQ advertise a single summary to the core instead of dozens of individual /24 routes. When an individual VLAN is added at HQ, no routing changes are needed at the core level.
+
+**Dedicated blocks for infrastructure:**
+- `10.255.0.0/24`: Loopback interfaces for all routers and Layer 3 switches
+- `10.254.0.0/24`: Point-to-point WAN links (/30 or /31 per link)
+- `10.253.0.0/24`: Network management (OOB, monitoring, SNMP targets)
+
+Keeping infrastructure IPs in a predictable block simplifies ACLs, firewall rules, and NOC filters.
+
+## Redundancy and High Availability
+
+Every layer of the design should tolerate the failure of a single component without user-visible impact.
+
+**Access layer:** Dual uplinks from each access switch to two different distribution switches. Spanning tree (RSTP) or equivalent handles loop prevention, with one uplink in forwarding and one in backup. Alternatively, use multi-chassis EtherChannel (Cisco StackWise, VSS, or MLAG on other vendors) to make both uplinks active simultaneously.
+
+**Distribution layer:** Two distribution switches per zone, each with an uplink to each core switch. HSRP or VRRP provides a redundant default gateway for end-user VLANs. With HSRP Active/Standby, one distribution switch is the active gateway per VLAN. Configure different switches as Active for different VLANs to load-share (VLAN 10 active on Dist-1, VLAN 20 active on Dist-2).
+
+**Core layer:** Full mesh between core nodes. With two core switches, each distribution block has one uplink to each core switch. With four core switches, partial mesh (ring or partial mesh) may reduce cabling while maintaining redundancy.
+
+**WAN links:** Each branch connects to two different PE (Provider Edge) routers or via two different service providers when budget allows. Dual routing protocol adjacencies (OSPF primary, static routes as fallback, or BGP with two ISPs) provide path redundancy.
+
+## VLAN Segmentation
+
+VLANs divide a switched network into independent broadcast domains. Proper VLAN design:
+
+**Segment by function, not just by location.** User data traffic, VoIP, wireless, management, and servers should each occupy separate VLANs. This enables differential QoS, separate DHCP scopes, and precise ACL enforcement.
+
+**Contain VLANs within a building or zone.** Stretching a VLAN across two buildings (VLAN 10 present on both Floor-1 and Floor-2 access switches) extends the failure domain. A broadcast storm in Floor-1 impacts Floor-2. Where possible, use Layer 3 routing between buildings rather than extending VLANs.
+
+**Use a management VLAN separate from user VLANs.** Switch management interfaces (SVIs or management IPs) should be on a VLAN accessible only from the NOC. If user traffic is compromised, the network gear remains manageable.
+
+**Number VLANs consistently.** A site-wide VLAN numbering scheme prevents confusion during troubleshooting. Example: VLANs 10–19 for user data, 20–29 for VoIP, 30–39 for wireless, 40–49 for servers, 50–59 for management, 60–69 for security cameras.
+
+## Bandwidth Oversubscription Ratios
+
+Every aggregation point multiplexes traffic from many lower-speed ports onto fewer higher-speed uplinks. The ratio of downlink capacity to uplink capacity is the oversubscription ratio.
+
+**Access to distribution (user VLANs):** 20:1 is acceptable for general office traffic. With 48 x 1G ports and 2 x 10G uplinks, the ratio is 48:20 = 2.4:1 per 10G uplink. With full-duplex, the effective aggregate downlink is 48G; uplink is 20G — 2.4:1 oversubscription. For video-heavy environments, aim for 4:1 or lower.
+
+**Access to distribution (servers):** 2:1 or 1:1 for database servers, NFS, and iSCSI traffic. Storage traffic is latency-sensitive and bursty; oversubscription causes retransmits and performance degradation.
+
+**Distribution to core:** 2:1 maximum. Core links should almost never be the bottleneck.
+
+## Common Design Errors
+
+**Single points of failure at distribution.** A single distribution switch with all access switches homed to it means any failure in that switch causes a full building outage. Always deploy distribution in redundant pairs.
+
+**VLANs spanning the entire campus.** Layer 2 failures (broadcast storms, STP topology changes) can propagate across a large L2 domain in seconds. Route between buildings at Layer 3; keep L2 domains small.
+
+**Undersized uplinks.** Adding users to a VLAN without auditing uplink capacity leads to congestion. Monitor interface utilization in all distribution and core links; alert at 70% sustained utilisation.
+
+**Inconsistent IP addressing.** If each site has a different team that independently chose address blocks, overlapping ranges and missing summarisation are inevitable. Establish a central IPAM (IP Address Management) database and enforce the addressing policy.
+
+**No OOB management.** When the in-band network fails, you need another way to reach network gear. A dedicated management network (physical or VLAN-based) with a terminal server allows console-level access to every device from a single point of entry.
+
+## Campus vs Branch vs Data Center Design
+
+These three environments have different requirements that lead to different design patterns.
+
+**Campus:** Focus on user density, PoE, wireless density, segmentation, and client mobility. The three-layer hierarchical model is the standard approach.
+
+**Branch:** Cost and simplicity dominate. A single integrated services router (ISR) or compact switch stack handles access, distribution, and WAN functions. Redundancy typically comes from dual WAN links rather than redundant hardware.
+
+**Data Center:** Spine-leaf architecture has largely replaced the three-layer model for new data center builds. Every leaf switch connects to every spine switch; no leaf-to-leaf links exist. This provides predictable any-to-any latency, equal-cost multipath (ECMP) across all paths, and simple horizontal scaling by adding leaf/spine pairs. VXLAN over BGP EVPN is the dominant overlay technology for multi-tenant data center fabrics.

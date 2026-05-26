@@ -1,0 +1,158 @@
+---
+title: "VLSM Network Design Guide — Step by Step with Examples"
+description: "Learn Variable Length Subnet Masking with practical examples. Design efficient IP addressing schemes for enterprise networks using VLSM best practices."
+pubDate: 2026-02-05
+category: subnetting
+tags: ["VLSM", "network design", "IP addressing", "subnetting", "enterprise networking"]
+featured: true
+---
+
+# VLSM Network Design Guide
+
+Variable Length Subnet Masking (VLSM) is the standard IP addressing technique for any network larger than a single flat segment. It lets you allocate exactly as much address space as each subnet requires, eliminating the waste inherent in fixed-length subnetting.
+
+## Why VLSM Replaced Classful Subnetting
+
+In the early days of TCP/IP, networks used classful addressing: every subnet in a given network had to use the same mask. If your site used `192.168.1.0/24` and you needed four subnets, you were forced into four /26 subnets of 62 hosts each — even if three of those subnets only needed 10 hosts and one needed 50.
+
+The result was rampant address waste. A /26 for a 3-person management VLAN discards 59 addresses. Across an enterprise with hundreds of subnets, the losses add up to thousands of wasted addresses.
+
+VLSM breaks this constraint. Each subnet can have its own prefix length, sized precisely to fit its requirements. A 50-host LAN gets a /26. A 10-host VLAN gets a /28. A router serial link gets a /30. The loopback interface gets a /32. All from the same parent block, with minimal waste.
+
+## The VLSM Algorithm: Largest Subnet First
+
+The core rule of VLSM design is always to allocate from largest requirement to smallest. This prevents fragmentation and ensures the larger subnets fit contiguously within the address space.
+
+**Step 1: List all subnets and their host requirements.**
+
+Collect every network segment that needs IP addresses: user VLANs, server VLANs, DMZs, management networks, point-to-point WAN links, loopback interfaces.
+
+**Step 2: Sort by host count, descending.**
+
+Order from the subnet needing the most hosts down to the one needing fewest.
+
+**Step 3: Calculate the required prefix for each.**
+
+For each subnet, find the smallest power of 2 that accommodates the required hosts plus 2 (network + broadcast). The formula is: find the smallest `n` where `2^n − 2 ≥ required_hosts`, then the prefix is `32 − n`.
+
+**Step 4: Assign addresses sequentially within the parent block.**
+
+Start from the beginning of the parent block and assign each subnet in turn. Each subnet's starting address must be aligned to a boundary that is a multiple of its size.
+
+**Step 5: Verify no overlap.**
+
+Check that the range covered by each subnet does not intersect with any other. The last address of each subnet (broadcast) must be strictly less than the first address of the next subnet.
+
+## Example 1: Small Branch Office
+
+**Requirement:** Parent block `10.10.0.0/24`. Subnets needed:
+- Sales VLAN: 80 hosts
+- Engineering VLAN: 40 hosts
+- Management VLAN: 12 hosts
+- Server VLAN: 6 hosts
+- WAN link to HQ: 2 hosts
+
+**Sorted by size:** 80, 40, 12, 6, 2
+
+**Prefix calculation:**
+- 80 hosts: 2^7 = 128 − 2 = 126 usable → /25
+- 40 hosts: 2^6 = 64 − 2 = 62 usable → /26
+- 12 hosts: 2^4 = 16 − 2 = 14 usable → /28
+- 6 hosts: 2^3 = 8 − 2 = 6 usable → /29
+- 2 hosts: 2^2 = 4 − 2 = 2 usable → /30
+
+**Allocation:**
+
+| Subnet | Network | Range | Broadcast | Prefix |
+|--------|---------|-------|-----------|--------|
+| Sales VLAN | 10.10.0.0 | .1 – .126 | 10.10.0.127 | /25 |
+| Engineering VLAN | 10.10.0.128 | .129 – .190 | 10.10.0.191 | /26 |
+| Management VLAN | 10.10.0.192 | .193 – .206 | 10.10.0.207 | /28 |
+| Server VLAN | 10.10.0.208 | .209 – .214 | 10.10.0.215 | /29 |
+| WAN link | 10.10.0.216 | .217 – .218 | 10.10.0.219 | /30 |
+
+Addresses used: 220 out of 256. Addresses unallocated: 10.10.0.220 through 10.10.0.255 (36 addresses kept as reserve). Efficiency: 85.9%.
+
+## Example 2: Multi-Site Enterprise
+
+**Requirement:** Parent block `172.16.0.0/16`. Four sites, each needing a /20 allocation for local sub-division:
+
+| Site | Allocation | Available hosts |
+|------|------------|-----------------|
+| HQ | 172.16.0.0/20 | 4,094 |
+| Branch A | 172.16.16.0/20 | 4,094 |
+| Branch B | 172.16.32.0/20 | 4,094 |
+| Branch C | 172.16.48.0/20 | 4,094 |
+| Reserved | 172.16.64.0/18 | Future growth |
+
+Within HQ's `172.16.0.0/20`, the network team further sub-divides using VLSM:
+
+| Purpose | Network | Prefix | Hosts |
+|---------|---------|--------|-------|
+| User LAN 1 | 172.16.0.0 | /22 | 1,022 |
+| User LAN 2 | 172.16.4.0 | /22 | 1,022 |
+| Server farm | 172.16.8.0 | /23 | 510 |
+| DMZ | 172.16.10.0 | /25 | 126 |
+| Management | 172.16.10.128 | /27 | 30 |
+| WAN links block | 172.16.10.160 | /27 | — |
+
+The WAN links block `172.16.10.160/27` is itself sub-divided into /30 subnets for each serial link: `.160/30`, `.164/30`, `.168/30`... providing seven WAN links from 32 addresses.
+
+## Example 3: Data Center with Server Tiers
+
+**Requirement:** Parent block `10.50.0.0/21` (2,046 usable addresses). Server tiers need different sizes:
+
+- Production web tier: 200 hosts → /24 (254 usable)
+- Production app tier: 100 hosts → /25 (126 usable)
+- Production DB tier: 20 hosts → /27 (30 usable)
+- Staging environment: 60 hosts → /26 (62 usable)
+- Management/OOB: 15 hosts → /27 (30 usable)
+- Storage network: 10 hosts → /28 (14 usable)
+
+**Allocation within 10.50.0.0/21:**
+
+| Tier | Network | Prefix |
+|------|---------|--------|
+| Production web | 10.50.0.0 | /24 |
+| Production app | 10.50.1.0 | /25 |
+| Staging | 10.50.1.128 | /26 |
+| Production DB | 10.50.1.192 | /27 |
+| Management | 10.50.1.224 | /27 |
+| Storage | 10.50.2.0 | /28 |
+| Reserved | 10.50.2.16 – 10.50.7.255 | Future |
+
+## VLSM Design Rules for Production Networks
+
+**WAN links always get /30 (or /31).** Never assign a /24 to a two-router serial link. You are wasting 252 addresses. Use /30 for maximum compatibility or /31 per RFC 3021 for maximum efficiency.
+
+**Loopback interfaces always get /32.** Loopbacks should be individually addressable but never need to be part of a subnet. Assign one /32 per router from a dedicated loopback block: `10.255.0.0/24` reserved for all router loopbacks.
+
+**Management networks use /28 or /29.** A management VLAN rarely needs more than 14 hosts (network gear, out-of-band servers, monitoring systems). A /28 (14 usable) or /29 (6 usable) is almost always sufficient.
+
+**Plan for growth.** Assign each site or department a block that is at least twice what is currently needed. Renumbering is expensive. A branch with 50 hosts today should receive a /24 (254 usable), not a /26 (62 usable). The wasted addresses are cheap insurance.
+
+**Document alignment requirements.** A /25 subnet must start at an address divisible by 128. A /26 must start at an address divisible by 64. Misaligned subnets create routing table issues and make troubleshooting harder. Use the subnet calculator to verify alignment before deploying.
+
+## Common VLSM Mistakes
+
+**Allocating small subnets first.** If you assign the /30 WAN links before the /22 user LANs, the large subnets will not fit cleanly. Always allocate largest first.
+
+**Forgetting the two reserved addresses.** Every subnet requires one network address and one broadcast address. A /28 has 16 total addresses but only 14 usable. A /29 has 8 total but only 6 usable. Forgetting this is the most common sizing error.
+
+**Overlapping subnets.** After allocation, verify the end address of each subnet does not exceed the start address of the next. The broadcast address of `10.10.0.192/28` is `10.10.0.207`. The next available address is `10.10.0.208`, not `10.10.0.209`.
+
+**Not reserving a growth block.** Assign contiguous subnets sequentially and leave an unallocated block at the end of each site's allocation. Adding a new VLAN should not require renumbering existing subnets.
+
+## VLSM vs FLSM: When to Use Each
+
+Fixed-Length Subnet Masking (FLSM) divides a parent block into equal-sized subnets. It is simpler to plan and document, but wastes address space when subnet sizes vary significantly.
+
+| Factor | VLSM | FLSM |
+|--------|------|------|
+| Address efficiency | High | Low to medium |
+| Planning complexity | Higher | Lower |
+| Suitable for | Heterogeneous networks | Uniform networks |
+| Protocol requirement | Classless routing (OSPF, EIGRP, BGP) | Any routing protocol |
+| Documentation overhead | Higher | Lower |
+
+Use FLSM only when all subnets have nearly identical host counts or when simplicity outweighs address conservation. For any network larger than a single building, VLSM is the correct choice.

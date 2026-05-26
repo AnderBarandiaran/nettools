@@ -1,0 +1,166 @@
+---
+title: "IPv4 Subnetting Cheat Sheet — Complete Reference for Network Engineers"
+description: "Complete IPv4 subnetting reference with all subnet masks, CIDR notation, usable hosts, wildcard masks, and binary representations from /1 to /32."
+pubDate: 2026-02-01
+category: subnetting
+tags: ["subnetting", "cheat sheet", "IPv4", "CIDR", "subnet mask"]
+featured: true
+---
+
+# IPv4 Subnetting Cheat Sheet
+
+Every network engineer needs a reliable reference for subnetting. This guide covers every prefix length from /1 to /32, explains the math behind the formulas, and provides practical context for real-world network design decisions.
+
+## The Complete /1 to /32 Reference Table
+
+| CIDR | Subnet mask | Wildcard mask | Total addresses | Usable hosts | Host bits |
+|------|-------------|---------------|-----------------|--------------|-----------|
+| /1   | 128.0.0.0        | 127.255.255.255   | 2,147,483,648 | 2,147,483,646 | 31 |
+| /2   | 192.0.0.0        | 63.255.255.255    | 1,073,741,824 | 1,073,741,822 | 30 |
+| /3   | 224.0.0.0        | 31.255.255.255    | 536,870,912 | 536,870,910 | 29 |
+| /4   | 240.0.0.0        | 15.255.255.255    | 268,435,456 | 268,435,454 | 28 |
+| /5   | 248.0.0.0        | 7.255.255.255     | 134,217,728 | 134,217,726 | 27 |
+| /6   | 252.0.0.0        | 3.255.255.255     | 67,108,864 | 67,108,862 | 26 |
+| /7   | 254.0.0.0        | 1.255.255.255     | 33,554,432 | 33,554,430 | 25 |
+| /8   | 255.0.0.0        | 0.255.255.255     | 16,777,216 | 16,777,214 | 24 |
+| /9   | 255.128.0.0      | 0.127.255.255     | 8,388,608  | 8,388,606  | 23 |
+| /10  | 255.192.0.0      | 0.63.255.255      | 4,194,304  | 4,194,302  | 22 |
+| /11  | 255.224.0.0      | 0.31.255.255      | 2,097,152  | 2,097,150  | 21 |
+| /12  | 255.240.0.0      | 0.15.255.255      | 1,048,576  | 1,048,574  | 20 |
+| /13  | 255.248.0.0      | 0.7.255.255       | 524,288    | 524,286    | 19 |
+| /14  | 255.252.0.0      | 0.3.255.255       | 262,144    | 262,142    | 18 |
+| /15  | 255.254.0.0      | 0.1.255.255       | 131,072    | 131,070    | 17 |
+| /16  | 255.255.0.0      | 0.0.255.255       | 65,536     | 65,534     | 16 |
+| /17  | 255.255.128.0    | 0.0.127.255       | 32,768     | 32,766     | 15 |
+| /18  | 255.255.192.0    | 0.0.63.255        | 16,384     | 16,382     | 14 |
+| /19  | 255.255.224.0    | 0.0.31.255        | 8,192      | 8,190      | 13 |
+| /20  | 255.255.240.0    | 0.0.15.255        | 4,096      | 4,094      | 12 |
+| /21  | 255.255.248.0    | 0.0.7.255         | 2,048      | 2,046      | 11 |
+| /22  | 255.255.252.0    | 0.0.3.255         | 1,024      | 1,022      | 10 |
+| /23  | 255.255.254.0    | 0.0.1.255         | 512        | 510        | 9  |
+| /24  | 255.255.255.0    | 0.0.0.255         | 256        | 254        | 8  |
+| /25  | 255.255.255.128  | 0.0.0.127         | 128        | 126        | 7  |
+| /26  | 255.255.255.192  | 0.0.0.63          | 64         | 62         | 6  |
+| /27  | 255.255.255.224  | 0.0.0.31          | 32         | 30         | 5  |
+| /28  | 255.255.255.240  | 0.0.0.15          | 16         | 14         | 4  |
+| /29  | 255.255.255.248  | 0.0.0.7           | 8          | 6          | 3  |
+| /30  | 255.255.255.252  | 0.0.0.3           | 4          | 2          | 2  |
+| /31  | 255.255.255.254  | 0.0.0.1           | 2          | 2*         | 1  |
+| /32  | 255.255.255.255  | 0.0.0.0           | 1          | 1*         | 0  |
+
+*Special cases — see the RFC 3021 and host route sections below.
+
+## How to Read CIDR Notation
+
+CIDR (Classless Inter-Domain Routing) notation expresses a network as an IP address followed by a forward slash and the prefix length. The prefix length tells you how many leading bits of the address are fixed (the network portion); the remaining bits identify individual hosts.
+
+For example, `192.168.10.0/24` means:
+- The first 24 bits (`192.168.10`) identify the network.
+- The last 8 bits (`.0` through `.255`) are available for hosts.
+- Network address: `192.168.10.0`
+- Broadcast address: `192.168.10.255`
+- Usable hosts: `192.168.10.1` through `192.168.10.254` (254 hosts)
+
+## The Formula for Usable Hosts
+
+The number of usable host addresses in any subnet is:
+
+```
+Usable hosts = 2^h - 2
+```
+
+where `h` is the number of host bits (32 minus the prefix length).
+
+The two subtracted addresses are the network address (all host bits set to 0) and the broadcast address (all host bits set to 1). For a /24, that is 2^8 − 2 = 254 usable hosts.
+
+## RFC 1918 Private Address Ranges
+
+These three blocks are reserved for private networks and must never be routed on the public internet:
+
+| Range | CIDR | Subnet mask | Usable hosts |
+|-------|------|-------------|--------------|
+| 10.0.0.0 – 10.255.255.255 | 10.0.0.0/8 | 255.0.0.0 | 16,777,214 |
+| 172.16.0.0 – 172.31.255.255 | 172.16.0.0/12 | 255.240.0.0 | 1,048,574 |
+| 192.168.0.0 – 192.168.255.255 | 192.168.0.0/16 | 255.255.0.0 | 65,534 |
+
+The 10.0.0.0/8 block is the most flexible for large enterprise deployments. A typical design allocates /8 per organisation, /12 per region, /16 per site, /24 per VLAN — leaving room for growth at every level.
+
+## Special Prefix Lengths
+
+### /31 — Point-to-Point Links (RFC 3021)
+
+A /31 subnet contains exactly two addresses. Classically both would be reserved (network and broadcast), making it unusable. RFC 3021 (published in 2000) formally permits using both addresses as host addresses on point-to-point links. This halves the address waste on WAN links compared to /30.
+
+On Cisco IOS, /31 works without special configuration since IOS 12.2. Many operators still use /30 for clarity, but /31 is valid and saves IPv4 space:
+
+```
+interface Serial0/0/0
+ ip address 10.1.1.0 255.255.255.254
+```
+
+The peer uses `10.1.1.1 255.255.255.254`. No broadcast address exists; both addresses are host-usable.
+
+### /32 — Host Routes
+
+A /32 mask identifies a single host. It appears in routing tables as a host route and is the standard for:
+- Loopback interfaces on routers (`interface Loopback0 / ip address 10.255.0.1 255.255.255.255`)
+- Redistributing specific host routes from a routing protocol
+- Null routes used as traffic black holes
+- BGP next-hop addresses
+
+You cannot have multiple hosts in a /32 — it is one address, one host.
+
+## Binary Representation of Common Octets
+
+When working with subnet masks, the last interesting octet is always one of eight possible values. Understanding their binary form lets you identify network and host boundaries immediately:
+
+| Decimal | Binary | Bits used | Used in prefix |
+|---------|--------|-----------|----------------|
+| 128 | 10000000 | 1 | /9, /17, /25 |
+| 192 | 11000000 | 2 | /10, /18, /26 |
+| 224 | 11100000 | 3 | /11, /19, /27 |
+| 240 | 11110000 | 4 | /12, /20, /28 |
+| 248 | 11111000 | 5 | /13, /21, /29 |
+| 252 | 11111100 | 6 | /14, /22, /30 |
+| 254 | 11111110 | 7 | /15, /23, /31 |
+| 255 | 11111111 | 8 | /8, /16, /24, /32 |
+
+To find the network address from any IP and mask: perform a bitwise AND between the IP address and the subnet mask. To find the broadcast address: set all host bits to 1 (OR the network address with the wildcard mask).
+
+## Class-Based Address Ranges (Historical Context)
+
+Before CIDR, IPv4 was divided into fixed classes. Understanding them helps when reading older documentation:
+
+| Class | Range | Default mask | Typical use |
+|-------|-------|-------------|-------------|
+| A | 1.0.0.0 – 126.255.255.255 | /8 (255.0.0.0) | Large organisations, ISPs |
+| B | 128.0.0.0 – 191.255.255.255 | /16 (255.255.0.0) | Mid-size organisations |
+| C | 192.0.0.0 – 223.255.255.255 | /24 (255.255.255.0) | Small networks |
+| D | 224.0.0.0 – 239.255.255.255 | N/A | Multicast |
+| E | 240.0.0.0 – 255.255.255.255 | N/A | Experimental/reserved |
+
+Note that 127.x.x.x is reserved for loopback and is not a valid Class A network. 169.254.x.x (Class B space) is reserved for APIPA (Automatic Private IP Addressing).
+
+## Practical Examples by Prefix Length
+
+**Designing for 200 hosts:** You need at least 202 addresses (200 hosts + network + broadcast). A /24 gives 254 usable hosts — the correct choice. A /25 only provides 126 usable hosts, which is insufficient.
+
+**Designing a /22 office block:** `10.4.0.0/22` covers `10.4.0.0` through `10.4.3.255` — 1,024 addresses, 1,022 usable. This can be divided into four /24 VLANs: `10.4.0.0/24`, `10.4.1.0/24`, `10.4.2.0/24`, `10.4.3.0/24`, each with 254 usable hosts.
+
+**WAN link economy:** Use /30 for router-to-router links where only two hosts are needed. `10.1.0.0/30` gives you `.1` and `.2` as usable addresses with `.0` as network and `.3` as broadcast. For maximum efficiency, use /31 per RFC 3021.
+
+**Loopback addressing:** Assign a /32 from a dedicated block, for example `10.255.0.0/24` reserved for loopbacks. Router R1 gets `10.255.0.1/32`, R2 gets `10.255.0.2/32`. These are reachable across the network but consume no subnet space.
+
+## Wildcard Mask Quick Reference
+
+Wildcard masks are the inverse of subnet masks and appear in OSPF `network` statements and Cisco ACLs. To calculate a wildcard mask, subtract the subnet mask from `255.255.255.255`:
+
+| Subnet mask | Wildcard mask | Used for |
+|-------------|---------------|----------|
+| 255.255.255.0 (/24) | 0.0.0.255 | Match entire /24 |
+| 255.255.255.128 (/25) | 0.0.0.127 | Match half of /24 |
+| 255.255.255.252 (/30) | 0.0.0.3 | Match /30 link |
+| 255.255.255.255 (/32) | 0.0.0.0 | Match single host |
+| 255.0.0.0 (/8) | 0.255.255.255 | Match Class A block |
+
+In OSPF `network` statements, `0.0.0.255` means "match any address in this /24 block, regardless of the last octet." The wildcard `0.0.0.0` means "match this exact address only" — the host-specific form.

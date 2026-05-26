@@ -1,0 +1,202 @@
+---
+title: "OSPF Troubleshooting Guide — Common Problems and Solutions"
+description: "Diagnose and fix common OSPF issues on Cisco IOS routers. Covers neighbor adjacency failures, route missing, MTU mismatch, area type conflicts, and authentication problems."
+pubDate: 2026-02-15
+category: cisco
+tags: ["OSPF", "troubleshooting", "Cisco IOS", "routing", "network engineering"]
+featured: false
+---
+
+# OSPF Troubleshooting Guide
+
+OSPF troubleshooting follows a structured method: verify the physical layer first, confirm IP connectivity, then examine OSPF-specific configuration layer by layer. Jumping straight to OSPF when the problem is a misconfigured IP address wastes time. This guide covers the complete troubleshooting flow plus detailed explanations of every common failure mode.
+
+## The Troubleshooting Checklist
+
+Work through this checklist in order before looking at OSPF configuration:
+
+**Layer 1 — Physical:**
+- Is the interface up? (`show interfaces` — check "is up, line protocol is up")
+- Are there input/output errors? High error counts indicate cable or duplex issues.
+
+**Layer 2 — Data Link:**
+- For serial links: is the encapsulation correct on both ends? (HDLC vs PPP mismatch prevents adjacency)
+- For Ethernet: are both sides in the same VLAN?
+
+**Layer 3 — IP:**
+- Do both interfaces have IP addresses in the same subnet?
+- Can each router ping the other's interface IP?
+- Are there any ACLs on the interface that could block OSPF multicast (224.0.0.5, 224.0.0.6)?
+
+**OSPF-specific:**
+- Are both routers in the same OSPF area?
+- Do the Hello and Dead timers match?
+- Do the area types match (standard, stub, NSSA)?
+- Is authentication configured identically on both sides?
+- Does the MTU match on both interfaces?
+- Is the `network` statement covering the interface, or is the interface explicitly added with `ip ospf <process> area <area>`?
+
+## OSPF Neighbor States Explained
+
+OSPF establishes adjacency through a well-defined state machine. Understanding each state helps pinpoint exactly where a failure is occurring.
+
+**Down:** No Hello packets have been received from this neighbor. Either the neighbor doesn't exist yet, the Hello is being lost, or an ACL is blocking OSPF traffic.
+
+**Attempt:** Only relevant for NBMA networks (Frame Relay, ATM). The router is attempting to contact a statically defined neighbor. If it stays here, the neighbor is unreachable.
+
+**Init:** Hello packets are being received from the neighbor, but the neighbor's Hello does not include this router's RID in its neighbor list. This means the Hellos are one-directional. Check for broadcast domain issues (asymmetric routing, VLAN mismatch) or an ACL blocking one direction.
+
+**2-Way:** Both routers see each other in their respective Hello packets. On broadcast networks (Ethernet), a DR/BDR election occurs here. Non-DR/non-BDR routers on Ethernet stay in 2-Way with each other (full adjacency only with DR and BDR). On point-to-point links, the routers proceed directly past 2-Way.
+
+**ExStart:** The routers negotiate the master/slave relationship for the database exchange and determine the starting sequence number. If the state is stuck here, the most common cause is an MTU mismatch.
+
+**Exchange:** The routers exchange Database Description (DBD) packets listing their LSA headers. If stuck here, look for MTU issues or a firewall dropping larger OSPF packets.
+
+**Loading:** The routers send Link State Request (LSR) packets to obtain LSAs they don't yet have. If stuck here, a corrupt LSA or an intermittent link is likely.
+
+**Full:** The adjacency is complete. Both routers have identical link-state databases for the area. This is the healthy end state.
+
+## Problem: Neighbors Stuck in ExStart or Exchange
+
+**Symptom:**
+```
+Router# show ip ospf neighbor
+Neighbor ID  Pri  State       Dead Time  Address       Interface
+10.0.0.2      1   EXSTART/DR  00:00:38   192.168.1.2   Gig0/0
+```
+
+**Cause:** MTU mismatch. Router A has MTU 1500, Router B has MTU 1476 (common after a Frame Relay cloud or GRE tunnel). OSPF DBD packets can exceed the smaller MTU, causing the exchange to fail.
+
+**Diagnosis:**
+```
+show interfaces GigabitEthernet0/0
+```
+Check the MTU line. Compare on both routers.
+
+```
+show ip ospf interface GigabitEthernet0/0
+```
+Check for "IP MTU mismatch" warnings.
+
+**Fix — Option 1: Match MTUs on both interfaces:**
+```
+interface GigabitEthernet0/0
+ ip mtu 1476
+```
+
+**Fix — Option 2: Ignore MTU check (use with caution):**
+```
+interface GigabitEthernet0/0
+ ip ospf mtu-ignore
+```
+
+`ip ospf mtu-ignore` tells OSPF not to include the MTU in DBD packets. This allows adjacency to form even with mismatched MTUs, but large packets may still be silently dropped in transit. Fix the actual MTU mismatch when possible; use `mtu-ignore` only as a workaround during troubleshooting.
+
+## Problem: Neighbors Not Forming at All
+
+If the neighbor does not appear in `show ip ospf neighbor`, the Hello packets are not getting through or are being rejected.
+
+**Check 1: Hello and Dead timers must match exactly.**
+```
+show ip ospf interface GigabitEthernet0/0
+```
+Look for "Hello 10, Dead 40" (default for Ethernet). Both routers must have identical values. If one has been tuned for fast Hello (`ip ospf hello-interval 1`), the other must also be configured for 1-second Hellos.
+
+**Check 2: Area number must match.**
+The interfaces must be in the same OSPF area. Area 0 on one router and Area 1 on the other will prevent adjacency.
+
+**Check 3: Subnet must match.**
+The interface IPs must be in the same subnet. `10.1.1.1/30` and `10.1.1.2/24` will not form OSPF adjacency — they are in different networks from OSPF's perspective.
+
+**Check 4: Authentication.**
+```
+show ip ospf interface GigabitEthernet0/0
+```
+Look for "Simple password authentication enabled" or "Message digest authentication enabled." Both routers must use the same authentication type and the same key.
+
+**Check 5: Network statement covering the interface.**
+```
+show ip protocols
+```
+Confirm that the OSPF `network` statement matches the interface IP. For example, `network 10.1.1.0 0.0.0.3 area 0` covers `10.1.1.1` and `10.1.1.2` on a /30, but would miss `10.1.1.5`. Alternatively, use interface-level OSPF:
+```
+interface GigabitEthernet0/0
+ ip ospf 1 area 0
+```
+
+## Problem: Routes Missing from the Routing Table
+
+**Symptom:** OSPF adjacency shows Full, but expected routes are not in `show ip route`.
+
+**Check 1: Is the route in the OSPF database?**
+```
+show ip ospf database router
+show ip ospf database network
+show ip ospf database summary
+```
+If the LSA for the expected network is present, the problem is in the SPF calculation or route installation. If the LSA is absent, the originating router is not advertising it.
+
+**Check 2: Is the originating router advertising the network?**
+On the remote router, verify that the `network` statement or `ip ospf area` covers the interface:
+```
+show ip ospf interface brief
+```
+This lists every interface participating in OSPF. If the interface is absent, the network statement is wrong or the interface has `ip ospf passive` configured incorrectly.
+
+**Check 3: Area type conflicts.**
+A summary LSA (Type 3) from Area 0 will not enter a totally stubby area. If you have a Totally Stub area configured on one router but not the other, the area type mismatch will prevent route exchange:
+```
+Router(config-router)# area 1 stub no-summary
+```
+Both routers in the area must agree on the area type.
+
+**Check 4: Redistribution issues.**
+External routes (Type 5 or Type 7 LSAs) will not enter stub areas at all. If routes are being redistributed from EIGRP or a static route into OSPF, confirm the area is not configured as stub or NSSA (for Type 5s).
+
+## Diagnostic Commands Explained
+
+**`show ip ospf neighbor`**
+Lists all OSPF neighbors, their state, the time until the Dead timer expires, the neighbor's IP address, and the local interface. A Full state for all neighbors is the expected healthy output.
+
+**`show ip ospf neighbor detail`**
+Provides complete information per neighbor: router ID, area, timers, Dead timer countdown, Hello/Dead interval, DR/BDR roles, and adjacency uptime. Use this when `show ip ospf neighbor` shows a problem state.
+
+**`show ip ospf database`**
+Lists the LSDB summary: how many Router LSAs, Network LSAs, Summary LSAs, AS External LSAs, and so on, for each area. Use this to verify that LSAs are being received from all expected sources.
+
+**`show ip ospf interface GigabitEthernet0/0`**
+Per-interface OSPF details: area membership, network type (broadcast/point-to-point/NBMA), DR/BDR election result, Hello and Dead intervals, authentication type, MTU, and the count of neighbors. This is the most useful single command for interface-level diagnosis.
+
+**`debug ip ospf adj`**
+Real-time output of OSPF adjacency events: Hello exchanges, DBD negotiation, LSR/LSU/LSAck messages. Use with caution on production routers — output can be very high volume on busy networks. Always use `undebug all` when finished. On a router with many neighbors, consider using:
+```
+debug ip ospf adj 10.0.0.2
+```
+to limit output to a specific neighbor.
+
+**`debug ip ospf hello`**
+Shows Hello packets sent and received, including the reason for any Hello rejections (mismatched area, mismatched timers, etc.). Useful when the neighbor is not appearing in the neighbor table at all.
+
+## Authentication Troubleshooting
+
+OSPF supports two authentication types: simple password (Type 1) and MD5 (Type 2). Mismatches in type or key are a common cause of failed adjacency.
+
+**Configure MD5 authentication on an interface:**
+```
+interface GigabitEthernet0/0
+ ip ospf authentication message-digest
+ ip ospf message-digest-key 1 md5 MySecretKey
+
+router ospf 1
+ area 0 authentication message-digest
+```
+
+Both the interface command and the `area` command must be present. The key ID (1 in this example) and the key string must match on both routers. Key IDs are locally significant but must match on adjacent routers.
+
+To verify authentication is working:
+```
+show ip ospf interface GigabitEthernet0/0
+```
+Look for "Message digest authentication enabled / Youngest key id is 1."
+
+If authentication is the problem, `debug ip ospf adj` will show: "OSPF: Send with youngest Key 1" and, on the receiving router, "OSPF: Rcv pkt from 192.168.1.2: Mismatched Authentication Key."

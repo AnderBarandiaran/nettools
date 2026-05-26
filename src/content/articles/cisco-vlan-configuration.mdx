@@ -1,0 +1,231 @@
+---
+title: "Cisco VLAN Configuration Guide — Trunking, Access Ports, and VTP"
+description: "Complete guide to VLAN configuration on Cisco switches. Covers VLAN creation, access and trunk ports, 802.1Q encapsulation, inter-VLAN routing, and VTP configuration."
+pubDate: 2026-03-01
+category: cisco
+tags: ["VLAN", "Cisco IOS", "switching", "trunking", "802.1Q", "network engineering"]
+featured: false
+---
+
+# Cisco VLAN Configuration Guide
+
+VLANs (Virtual Local Area Networks) are the fundamental segmentation mechanism in switched Ethernet networks. A VLAN creates an independent Layer 2 broadcast domain within a physical switch. Hosts in different VLANs cannot communicate directly — all inter-VLAN traffic must be routed at Layer 3. This guide covers complete VLAN configuration from first principles to inter-VLAN routing and VTP management.
+
+## Why Segment with VLANs
+
+**Broadcast control.** Every switch port in a VLAN receives every broadcast frame sent in that VLAN. Without VLANs, a single switch with 48 ports is one giant broadcast domain — every device processes every ARP request, every DHCP discover, every spanning tree BPDU. VLANs divide a switch into smaller, isolated broadcast domains, reducing broadcast traffic and improving performance.
+
+**Security.** A host in VLAN 10 cannot send frames directly to a host in VLAN 20. This prevents lateral movement between network segments. Finance servers sit in their own VLAN; even if a workstation in the user VLAN is compromised, the attacker cannot directly reach the financial systems without routing through a firewall or Layer 3 device where access control can be applied.
+
+**QoS and traffic management.** VoIP phones occupy a dedicated voice VLAN where priority queuing can be applied consistently across all devices in that segment. The CoS (Class of Service) field in 802.1Q tagged frames carries QoS markings as traffic traverses trunk links between switches.
+
+**Operational clarity.** Grouping devices by function (Users, Servers, VoIP, Management, Guest Wi-Fi) maps the network structure to business functions. Troubleshooting, change management, and documentation all benefit from consistent segmentation.
+
+## VLAN Creation
+
+VLANs are created in the switch's VLAN database. There are two methods: the legacy `vlan database` command and the preferred `configure terminal` method.
+
+**Preferred method (config mode):**
+```
+Switch(config)# vlan 10
+Switch(config-vlan)# name USERS
+Switch(config-vlan)# exit
+
+Switch(config)# vlan 20
+Switch(config-vlan)# name SERVERS
+Switch(config-vlan)# exit
+
+Switch(config)# vlan 30
+Switch(config-vlan)# name VOIP
+Switch(config-vlan)# exit
+
+Switch(config)# vlan 40
+Switch(config-vlan)# name MANAGEMENT
+Switch(config-vlan)# exit
+```
+
+VLAN names are local to the switch (not carried in 802.1Q headers), but consistent naming across switches is good practice. Names like `USERS`, `SERVERS`, or `FINANCE_VLAN` are more useful than leaving VLANs unnamed.
+
+**Legacy method:**
+```
+Switch# vlan database
+Switch(vlan)# vlan 10 name USERS
+Switch(vlan)# apply
+Switch(vlan)# exit
+```
+
+The legacy method is deprecated on modern IOS. Use the config-mode approach.
+
+## Access Ports
+
+An access port carries traffic for exactly one VLAN. Devices connected to access ports — workstations, printers, IP phones' data ports, servers — do not need to be VLAN-aware. The switch handles the VLAN assignment transparently.
+
+```
+Switch(config)# interface GigabitEthernet0/1
+Switch(config-if)# switchport mode access
+Switch(config-if)# switchport access vlan 10
+Switch(config-if)# spanning-tree portfast
+Switch(config-if)# spanning-tree bpduguard enable
+Switch(config-if)# no shutdown
+```
+
+`switchport mode access` forces the port into access mode, disabling DTP (Dynamic Trunking Protocol) negotiation. DTP should be disabled on all user-facing ports to prevent an attacker from negotiating a trunk and accessing all VLANs.
+
+`spanning-tree portfast` bypasses the 802.1D listening and learning states (30 seconds total) and transitions immediately to forwarding. Use only on ports connected to end devices, never on ports connected to other switches. PortFast with a trunk link creates a spanning tree loop.
+
+`spanning-tree bpduguard enable` disables the port if it receives a BPDU. This prevents an unauthorised switch from being plugged into an access port and altering the spanning tree topology.
+
+**Verify access port configuration:**
+```
+show interfaces GigabitEthernet0/1 switchport
+```
+Look for:
+- `Administrative Mode: static access`
+- `Operational Mode: static access`
+- `Access Mode VLAN: 10 (USERS)`
+
+## Trunk Ports
+
+A trunk port carries traffic for multiple VLANs simultaneously. Trunk links connect switches to other switches, or switches to routers (for inter-VLAN routing). Each frame on a trunk is tagged with its VLAN ID using 802.1Q encapsulation.
+
+**Basic trunk configuration:**
+```
+Switch(config)# interface GigabitEthernet0/24
+Switch(config-if)# switchport trunk encapsulation dot1q
+Switch(config-if)# switchport mode trunk
+Switch(config-if)# switchport trunk allowed vlan 10,20,30,40
+Switch(config-if)# switchport trunk native vlan 999
+Switch(config-if)# no shutdown
+```
+
+`switchport trunk encapsulation dot1q` is required on older IOS switches that support both ISL (Cisco proprietary, now obsolete) and 802.1Q. Modern switches support only 802.1Q; this command may not be needed.
+
+`switchport trunk allowed vlan 10,20,30,40` restricts the trunk to carry only the listed VLANs. Without this, a trunk carries all VLANs (1–4094 minus internally reserved). Restricting to necessary VLANs is a security best practice — it prevents VLAN hopping and limits the blast radius of misconfiguration.
+
+`switchport trunk native vlan 999` sets the native VLAN to 999. The native VLAN is the one VLAN whose traffic is sent untagged on a trunk link. By default, the native VLAN is VLAN 1. Changing it to an unused VLAN (999, or another dedicated native VLAN) prevents VLAN hopping attacks that exploit the untagged nature of native VLAN traffic.
+
+**Verify trunk configuration:**
+```
+show interfaces trunk
+```
+
+Output shows:
+- Port, mode, encapsulation, status, native VLAN
+- VLANs allowed on the trunk
+- VLANs allowed and active in management domain
+- VLANs in spanning tree forwarding state
+
+## 802.1Q Frame Structure
+
+An 802.1Q tag inserts a 4-byte field into the Ethernet frame between the Source MAC address and the EtherType field:
+
+| Field | Size | Description |
+|-------|------|-------------|
+| TPID | 16 bits | Tag Protocol Identifier: always `0x8100` |
+| PCP | 3 bits | Priority Code Point (CoS) — QoS marking, 0–7 |
+| DEI | 1 bit | Drop Eligible Indicator — marks frames for drop during congestion |
+| VID | 12 bits | VLAN ID — values 1–4094 (0 and 4095 are reserved) |
+
+The 12-bit VID field allows 4,094 usable VLANs (1–4094). VLAN 1 is the default VLAN on all Cisco switches and cannot be deleted. VLANs 1002–1005 are reserved for legacy Token Ring and FDDI. VLANs 1006–4094 are in the extended range, available on most modern switches.
+
+## Inter-VLAN Routing
+
+Hosts in different VLANs need a Layer 3 device to communicate. Two options: Router-on-a-Stick and Layer 3 switching with SVIs.
+
+### Router-on-a-Stick
+
+A single physical router interface is configured with sub-interfaces, one per VLAN. The router acts as the default gateway for all VLANs.
+
+**On the switch — configure the uplink as a trunk:**
+```
+Switch(config)# interface GigabitEthernet0/1
+Switch(config-if)# switchport trunk encapsulation dot1q
+Switch(config-if)# switchport mode trunk
+Switch(config-if)# switchport trunk allowed vlan 10,20,30
+```
+
+**On the router — configure sub-interfaces:**
+```
+Router(config)# interface GigabitEthernet0/0
+Router(config-if)# no shutdown
+
+Router(config)# interface GigabitEthernet0/0.10
+Router(config-subif)# encapsulation dot1q 10
+Router(config-subif)# ip address 10.10.10.1 255.255.255.0
+
+Router(config)# interface GigabitEthernet0/0.20
+Router(config-subif)# encapsulation dot1q 20
+Router(config-subif)# ip address 10.10.20.1 255.255.255.0
+
+Router(config)# interface GigabitEthernet0/0.30
+Router(config-subif)# encapsulation dot1q 30
+Router(config-subif)# ip address 10.10.30.1 255.255.255.0
+```
+
+Each sub-interface decapsulates frames tagged for its VLAN, routes at Layer 3, re-tags for the destination VLAN, and sends back on the trunk. Hosts in VLAN 10 use `10.10.10.1` as their default gateway; hosts in VLAN 20 use `10.10.20.1`.
+
+**Limitation:** All inter-VLAN traffic traverses the same physical link twice (once inbound, once outbound). For high traffic volumes, this single link becomes a bottleneck.
+
+### Layer 3 Switching with SVIs
+
+A Layer 3 switch performs inter-VLAN routing in hardware, at switching speeds, without an external router. Each VLAN gets a Switched Virtual Interface (SVI) — a logical Layer 3 interface:
+
+```
+Switch(config)# ip routing
+
+Switch(config)# interface Vlan10
+Switch(config-if)# ip address 10.10.10.1 255.255.255.0
+Switch(config-if)# no shutdown
+
+Switch(config)# interface Vlan20
+Switch(config-if)# ip address 10.10.20.1 255.255.255.0
+Switch(config-if)# no shutdown
+
+Switch(config)# interface Vlan30
+Switch(config-if)# ip address 10.10.30.1 255.255.255.0
+Switch(config-if)# no shutdown
+```
+
+`ip routing` enables Layer 3 forwarding on the switch. Without it, SVIs exist but the switch does not route between them.
+
+SVIs are the standard approach for distribution-layer switches in a campus network. Inter-VLAN routing happens on the switch at hardware speed, not on an external router through a bottleneck link.
+
+**Verify SVI routing:**
+```
+show ip route
+show ip interface brief
+```
+
+## VTP — VLAN Trunking Protocol
+
+VTP propagates VLAN configuration automatically across all switches in a management domain. One switch acts as the VTP Server; all others are VTP Clients.
+
+| Mode | Behaviour |
+|------|-----------|
+| Server | Can create, modify, delete VLANs. Propagates changes to clients. |
+| Client | Receives VLAN updates from server. Cannot create VLANs locally. |
+| Transparent | Does not participate in VTP. Forwards VTP messages but does not apply them. Can create local VLANs. |
+
+**Configure VTP:**
+```
+Switch(config)# vtp mode server
+Switch(config)# vtp domain MYCOMPANY
+Switch(config)# vtp password SecretVTP
+Switch(config)# vtp version 2
+```
+
+All switches in the domain must use the same domain name and password. VTP version 3 adds support for extended VLANs (1006–4094) and MST instance propagation.
+
+**VTP revision number is a critical risk.** Every time a VLAN change is made on the server, the revision number increments. A client with a higher revision number — for example, a decommissioned switch brought back online — will overwrite VLAN configuration on all clients, potentially deleting VLANs and bringing down the network.
+
+**Safe VTP practice:** Set all switches to VTP Transparent mode and manage VLANs locally on each switch. This eliminates the revision-number risk entirely. Use network automation (Ansible, NAPALM) to push consistent VLAN configurations across all switches instead of relying on VTP propagation.
+
+## Common Errors and How to Fix Them
+
+**Native VLAN mismatch.** Both ends of a trunk must have the same native VLAN. If one end is native VLAN 1 and the other is native VLAN 999, untagged frames are assigned to the wrong VLAN. CDP (Cisco Discovery Protocol) generates a warning: "Native VLAN mismatch discovered." Verify with `show interfaces trunk` and align both sides.
+
+**VLAN not in allowed list.** If a VLAN is created but not added to the trunk's allowed VLAN list, traffic for that VLAN is blocked at the trunk. Symptom: hosts in the new VLAN cannot reach their default gateway. Fix: `switchport trunk allowed vlan add 50`.
+
+**SVI not up.** An SVI is in up/up state only when at least one access port in that VLAN is up. If all VLAN 10 ports are down or the VLAN is not active, the SVI will not come up. Check `show vlan brief` to confirm the VLAN is active.
+
+**`ip routing` missing.** A common oversight: VLANs and SVIs are configured, but the switch does not route because `ip routing` was not entered in global config. Symptom: all hosts can reach their gateway (SVI) but not hosts in other VLANs. Ping from the switch itself works; ping from a host to another VLAN fails.

@@ -1,0 +1,232 @@
+---
+title: "Cisco IOS Extended ACL Configuration Guide — Examples and Best Practices"
+description: "Complete guide to configuring extended access control lists on Cisco IOS. Includes numbered and named ACLs, wildcard masks, port matching, and interface application."
+pubDate: 2026-02-10
+category: cisco
+tags: ["ACL", "Cisco IOS", "access control", "security", "network engineering"]
+featured: false
+---
+
+# Cisco IOS Extended ACL Configuration Guide
+
+Access Control Lists are the primary traffic filtering mechanism in Cisco IOS. Extended ACLs give you per-flow control: you can match on source address, destination address, protocol, and port number simultaneously. This guide covers the complete syntax, real-world examples, and the design principles that prevent common misconfigurations.
+
+## Standard vs Extended ACLs
+
+**Standard ACLs** (numbered 1–99 and 1300–1999) match only on source IP address. They are fast but inflexible. Use them only when you need to filter based on source alone — for example, restricting which hosts can update the routing table via OSPF, or controlling access to VTY lines.
+
+**Extended ACLs** (numbered 100–199 and 2000–2699) match on:
+- Source IP address and mask
+- Destination IP address and mask
+- Protocol (IP, TCP, UDP, ICMP, OSPF, EIGRP, etc.)
+- Source and destination port numbers or ranges
+- TCP state flags (established, for stateful filtering)
+
+Extended ACLs are the standard choice for interface-based traffic filtering. Any time you need to distinguish between HTTP and SSH, or between traffic from different destination servers, you need an extended ACL.
+
+## Numbered Extended ACL Syntax
+
+```
+access-list <100-199> {permit | deny} <protocol> <src> <src-wildcard> <dst> <dst-wildcard> [port-conditions] [log]
+```
+
+The keyword `any` is shorthand for `0.0.0.0 255.255.255.255`. The keyword `host` before an IP address is shorthand for the address with wildcard `0.0.0.0`.
+
+**Example: Block HTTP from the 10.1.2.0/24 network to any destination:**
+
+```
+access-list 110 deny tcp 10.1.2.0 0.0.0.255 any eq 80
+access-list 110 permit ip any any
+```
+
+The first line denies TCP packets from any source in 10.1.2.0/24 to any destination when the destination port is 80 (HTTP). The second line permits everything else. Without the `permit ip any any` at the end, the implicit `deny any` would block all traffic.
+
+## Named Extended ACL Syntax
+
+Named ACLs are preferred in production. They allow descriptive names, can be edited without removing the entire list, and support sequence numbers for inserting or removing individual entries.
+
+```
+ip access-list extended <name>
+ [sequence-number] {permit | deny} <protocol> <src> <src-wildcard> <dst> <dst-wildcard> [port-conditions] [log]
+```
+
+**Example: Permit only SSH access to the management server:**
+
+```
+ip access-list extended MGMT-IN
+ 10 permit tcp 10.0.0.0 0.255.255.255 host 10.255.1.10 eq 22
+ 20 deny   ip any any log
+```
+
+Line 10 permits TCP from any RFC 1918 address to host `10.255.1.10` on port 22. Line 20 denies everything else and logs it. The sequence numbers (10, 20) leave room to insert entries later with intermediate values (15, 25) without rewriting the list.
+
+## Understanding Wildcard Masks in ACLs
+
+Wildcard masks work the opposite of subnet masks: a `0` bit means "must match," a `1` bit means "ignore." They are not the inverse of subnet masks in general; they can be any pattern.
+
+Common patterns:
+
+| Wildcard | Meaning |
+|----------|---------|
+| `0.0.0.0` | Match this exact host (same as `host` keyword) |
+| `0.0.0.255` | Match any host in this /24 |
+| `0.0.3.255` | Match any host in a /22 aligned block |
+| `0.255.255.255` | Match any host in a /8 |
+| `255.255.255.255` | Match any address (same as `any` keyword) |
+| `0.0.0.15` | Match any host in a /28 |
+| `0.0.255.0` | Match any address with a specific second octet (unusual, used in some QoS policies) |
+
+**Non-contiguous wildcards** (where the 0 and 1 bits alternate) are valid in Cisco IOS but difficult to reason about. Avoid them unless you have a specific requirement — such as matching only odd-numbered VLANs.
+
+## The Implicit Deny at the End
+
+Every ACL on Cisco IOS ends with an invisible `deny ip any any` entry. This is not shown in `show running-config` or `show ip access-lists`. If no ACE in the list matches a packet, the packet is dropped.
+
+This means:
+1. Every ACL applied to an interface must have at least one `permit` statement, or it will drop all traffic.
+2. The `permit ip any any` at the end of a filtering ACL is not optional — omitting it blocks everything not explicitly permitted.
+3. If your goal is to permit most traffic and only block specific flows, place the `deny` statements first, followed by `permit ip any any`.
+4. If your goal is to permit only specific traffic and block everything else, place the `permit` statements only, and rely on the implicit deny for the rest.
+
+## Correct ACE Order: Most Specific First
+
+Cisco IOS evaluates ACEs in sequential order, stopping at the first match. Order matters.
+
+**Wrong (the deny is never reached):**
+```
+ip access-list extended WRONG-ORDER
+ 10 permit tcp any any eq 80
+ 20 deny   tcp host 10.1.1.5 any eq 80
+```
+
+Host `10.1.1.5` matches line 10 before line 20 is evaluated. HTTP traffic from that host is permitted.
+
+**Correct (specific first):**
+```
+ip access-list extended CORRECT-ORDER
+ 10 deny   tcp host 10.1.1.5 any eq 80
+ 20 permit tcp any any eq 80
+```
+
+Now `10.1.1.5` is evaluated and denied by line 10. All other hosts reach line 20 and are permitted.
+
+The rule: always place more specific entries before more general ones.
+
+## Applying ACLs to Interfaces: In vs Out
+
+An ACL applied `in` filters packets as they arrive on the interface — before routing. An ACL applied `out` filters packets after routing, as they leave the interface.
+
+```
+interface GigabitEthernet0/1
+ ip access-group FILTER-IN in
+ ip access-group FILTER-OUT out
+```
+
+**Inbound ACLs** are more efficient: packets that will be dropped are discarded before the routing table lookup. Place ACLs as close to the source of traffic as possible — typically on the interface facing the untrusted network or the end-user subnet.
+
+**Outbound ACLs** filter after routing. Use them when you need to control traffic leaving toward a specific destination, regardless of where it entered the router.
+
+You can apply one ACL per interface per direction (one `in`, one `out`). A single ACL can be applied to multiple interfaces.
+
+## Practical Examples
+
+### Block ICMP (ping) from a specific subnet
+
+```
+ip access-list extended NO-PING-FROM-GUEST
+ 10 deny   icmp 10.5.0.0 0.0.255.255 any echo
+ 20 permit ip any any
+
+interface GigabitEthernet0/2
+ ip access-group NO-PING-FROM-GUEST in
+```
+
+This drops ICMP echo requests from the 10.5.0.0/16 guest network, preventing ping from that zone while allowing all other traffic.
+
+### Permit only SSH and HTTPS to a server, deny everything else
+
+```
+ip access-list extended SERVER-ACCESS
+ 10 permit tcp any host 10.1.10.50 eq 22
+ 20 permit tcp any host 10.1.10.50 eq 443
+ 30 deny   ip any host 10.1.10.50 log
+ 40 permit ip any any
+
+interface GigabitEthernet0/0
+ ip access-group SERVER-ACCESS out
+```
+
+Lines 10 and 20 permit SSH and HTTPS. Line 30 drops and logs any other traffic destined for the server. Line 40 permits all other traffic (to other destinations) that passed through.
+
+### ACL for NAT source matching
+
+Extended ACLs are used in `ip nat inside source` commands to define which traffic gets translated:
+
+```
+ip access-list extended NAT-TRAFFIC
+ 10 permit ip 192.168.0.0 0.0.255.255 any
+
+ip nat inside source list NAT-TRAFFIC interface GigabitEthernet0/0 overload
+```
+
+Only traffic from the 192.168.0.0/16 range is translated. Traffic from other sources is not affected by NAT.
+
+### Allow established TCP sessions (stateful-like filtering)
+
+```
+ip access-list extended STATEFUL-LIKE
+ 10 permit tcp any any established
+ 20 permit tcp 10.0.0.0 0.255.255.255 any
+ 30 deny   ip any any
+```
+
+The `established` keyword matches TCP packets with the ACK or RST flag set — typically return traffic from an already-initiated session. This is not true stateful inspection (which requires a firewall), but it prevents unsolicited inbound TCP connections while allowing responses to outbound sessions initiated from `10.0.0.0/8`.
+
+## Verification Commands
+
+```
+show ip access-lists
+```
+Displays all ACLs with match counters. Each ACE shows how many packets have matched, which helps verify the ACL is working and identify which entries are actually being hit.
+
+```
+show ip access-lists FILTER-IN
+```
+Shows a specific named ACL. The counters increment in real time — run this while generating test traffic to confirm the ACL is matching as expected.
+
+```
+show running-config | section access-list
+```
+Shows all ACL definitions from the running configuration.
+
+```
+show interfaces GigabitEthernet0/1
+```
+Scroll down to see which ACLs are applied in which direction. Or use:
+
+```
+show ip interface GigabitEthernet0/1
+```
+This explicitly shows the inbound and outbound ACL names applied to the interface.
+
+**Resetting counters:**
+```
+clear ip access-list counters FILTER-IN
+```
+Clears the match counters on a named ACL, useful when testing a new change.
+
+## Best Practices Summary
+
+Always use named ACLs in production. The name provides immediate context without reading the rules. Use sequence numbers with gaps of 10 to leave room for future insertions. Add `log` to deny rules for security-relevant drops, but not to permit rules on high-traffic interfaces — logging is CPU-intensive. Apply ACLs as close to the traffic source as possible. Document the intent of each ACE with a remark:
+
+```
+ip access-list extended INBOUND-WAN
+ remark Block traffic from known bad subnets
+ 10 deny ip 185.220.0.0 0.0.255.255 any log
+ remark Permit management SSH from NOC
+ 20 permit tcp host 10.100.1.5 any eq 22
+ remark Permit all other traffic
+ 30 permit ip any any
+```
+
+Remarks do not affect packet processing and do not appear in `show ip access-lists` output, but they are visible in `show running-config` and are invaluable for audits and change management.
