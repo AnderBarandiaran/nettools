@@ -1,0 +1,140 @@
+---
+title: "Quality of Service Guide — QoS Configuration on Cisco IOS"
+description: "Complete guide to QoS on Cisco IOS. Covers classification, marking, queuing, policing, and shaping for voice, video, and data traffic prioritization."
+pubDate: 2026-04-20
+category: cisco
+tags: ["QoS", "quality of service", "Cisco IOS", "traffic management", "networking"]
+featured: false
+---
+
+# Quality of Service Guide — QoS on Cisco IOS
+
+Quality of Service (QoS) is the set of mechanisms that ensure critical traffic — voice calls, video conferences, real-time control systems — receives the bandwidth and low latency it needs, even when a link is congested. Without QoS, all traffic competes equally for bandwidth. With QoS, you give the network policies that define which traffic matters most and how to treat each type differently. This guide covers the Cisco IOS Modular QoS CLI (MQC) architecture and its most important tools.
+
+## Why QoS Is Necessary
+
+The internet was designed with best-effort delivery: every packet gets the same treatment, and when congestion occurs, packets are dropped randomly. For file downloads and web browsing, this is acceptable — TCP retransmits dropped packets and the user sees slightly slower throughput. For real-time applications, dropped or delayed packets are catastrophic. A dropped voice packet cannot be retransmitted — by the time the retransmission arrives, it is too late to play it. A 200ms one-way delay on a voice call is the maximum tolerable threshold (humans notice latency above this). Jitter — variation in delay between packets — is equally damaging, causing choppy audio.
+
+QoS solves this by differentiating traffic and giving preferential treatment to time-sensitive traffic. When a link is not congested, QoS has no effect — all queues drain at wire speed. QoS mechanisms only matter during congestion, when a scheduler must decide which packet to send next from multiple competing queues. The goal is that voice and video traffic always has a queue with low delay, regardless of how much bulk data traffic is competing for the same link.
+
+## The MQC Framework — Class Maps, Policy Maps, Service Policies
+
+Cisco IOS implements QoS using the Modular QoS CLI (MQC), which separates traffic classification from policy application in a clean three-step framework:
+
+**Step 1: Classify traffic with class maps.** A class map defines what traffic belongs to a class. You can match on DSCP value, IP precedence, ACL, protocol (NBAR), or other criteria:
+
+```
+class-map match-all VOICE
+ match dscp ef
+
+class-map match-all VIDEO
+ match dscp af41
+
+class-map match-all CRITICAL-DATA
+ match dscp af21
+
+class-map match-all BULK
+ match dscp af11
+```
+
+**Step 2: Define policy with policy maps.** A policy map applies actions to each class:
+
+```
+policy-map WAN-OUT
+ class VOICE
+  priority 128
+ class VIDEO
+  bandwidth 512
+ class CRITICAL-DATA
+  bandwidth 256
+  random-detect dscp-based
+ class BULK
+  bandwidth 64
+  shape average 64000
+ class class-default
+  fair-queue
+```
+
+**Step 3: Apply the policy to an interface with a service policy:**
+
+```
+interface Serial0/0
+ service-policy output WAN-OUT
+```
+
+The `output` direction means the policy applies to traffic leaving the interface. Use `input` for policing inbound traffic.
+
+## Traffic Classification and Marking — DSCP and IP Precedence
+
+Before QoS can treat traffic differently, it must identify what type each packet is. Classification happens at the network edge — typically at the access switch or the enterprise WAN router — where packets are examined and marked with a DSCP (Differentiated Services Code Point) value in the IP header's ToS field. Downstream devices trust and act on this marking without repeating the classification logic.
+
+DSCP values are 6 bits, providing 64 possible values (0–63). The standard per-hop behaviors:
+
+- **EF (Expedited Forwarding, DSCP 46)** — used for voice. EF-marked packets receive strict priority queuing, ensuring they experience minimum latency and jitter. Voice traffic should never exceed 30% of link capacity.
+- **AF (Assured Forwarding)** — a family of values with four classes (AF1x–AF4x) and three drop precedences within each class. AF41 (DSCP 34) is standard for video conferencing. AF21 (DSCP 18) for critical business applications. AF11 (DSCP 10) for bulk data.
+- **CS (Class Selector, CS1–CS7)** — backward-compatible with IP precedence values. CS3 is commonly used for call signaling.
+- **BE (Best Effort, DSCP 0)** — default for all unmarked traffic.
+
+Mark traffic using the `set dscp` command in a policy map class:
+
+```
+class-map VOIP
+ match protocol sip
+ match protocol rtp
+
+policy-map MARK-AT-EDGE
+ class VOIP
+  set dscp ef
+ class class-default
+  set dscp default
+```
+
+Apply this marking policy inbound at the access switch uplink or at the WAN edge router where traffic enters the QoS domain. Devices within your network should trust DSCP markings from internal sources and re-mark or strip markings from external sources.
+
+## Queuing — Managing Congestion
+
+Queuing mechanisms determine which packet is sent next when the output interface cannot transmit packets as fast as they arrive. The scheduler pulls packets from queues according to the configured policy.
+
+**Priority Queuing (PQ)** — the class with priority configured sends its traffic first, unconditionally. All other classes must wait until the priority queue is empty. Used exclusively for voice (EF-marked traffic). The risk: if voice traffic exceeds the configured priority bandwidth, it starves other classes. Always police voice traffic to its maximum expected rate before enqueuing it.
+
+**Class-Based Weighted Fair Queuing (CBWFQ)** — assigns a minimum guaranteed bandwidth to each class using the `bandwidth` command. Each class gets at least its configured bandwidth during congestion, and unused bandwidth from inactive classes is distributed proportionally among active classes. Use CBWFQ for data classes that need a bandwidth guarantee but can tolerate some delay.
+
+**Low-Latency Queuing (LLQ)** — combines a strict priority queue (for voice) with CBWFQ for all other classes. This is the recommended architecture for most WAN QoS deployments. Configure it using `priority` for voice and `bandwidth` for everything else in the same policy map.
+
+**Weighted Random Early Detection (WRED)** — proactively drops packets from high-utilisation queues before the queue fills completely. This signals TCP senders to slow down (via packet loss detection) before the queue overflows and drops packets indiscriminately. WRED is configured on bulk data classes to prevent TCP synchronization, where all TCP flows simultaneously reduce their window size in response to tail-drop congestion.
+
+## Traffic Policing and Shaping
+
+Policing and shaping both enforce a rate limit on a traffic class, but they behave differently when traffic exceeds the limit.
+
+**Policing** drops or re-marks packets that exceed the configured rate immediately. It does not buffer packets. This causes the sender's TCP stack to detect loss and reduce its window. Policing is appropriate for inbound traffic on an interface (traffic arriving from the internet or a customer) where you want to enforce a hard rate limit without buffering.
+
+```
+policy-map POLICE-INBOUND
+ class class-default
+  police rate 10000000 bps
+   conform-action transmit
+   exceed-action drop
+```
+
+**Shaping** buffers packets that exceed the configured rate and sends them later, smoothing the traffic flow into a steady stream at the configured rate. Shaping adds delay (packets wait in the buffer) but avoids drops. It is used on outbound WAN interfaces when you need to match the interface speed to the service provider's committed rate, avoiding drops at the provider's policer.
+
+```
+policy-map SHAPE-TO-WAN
+ class class-default
+  shape average 1000000
+```
+
+The typical WAN QoS design: shape the interface to the committed rate at the outer policy, then use LLQ with CBWFQ at the inner (child) policy to prioritize traffic within the shaped rate. This is called a hierarchical policy map.
+
+## QoS Verification Commands
+
+After applying a QoS policy, verify it is working correctly:
+
+- `show policy-map interface Serial0/0` — displays the policy applied to the interface, with per-class statistics: packets and bytes matched, dropped, queued, and the current queue depth
+- `show class-map` — displays all configured class maps and their match criteria
+- `show policy-map` — displays all configured policy maps
+- `show queue Serial0/0` — displays the current queue state
+- `show interface Serial0/0` — check output drops; a nonzero drop count means congestion is occurring
+
+The key metric to watch is `output drops` in `show interface`. If you see drops, your QoS policy is not providing enough bandwidth for the active traffic classes, or traffic is arriving faster than the interface can transmit. Check the per-class statistics in `show policy-map interface` to identify which class is being dropped and adjust bandwidth allocations accordingly.

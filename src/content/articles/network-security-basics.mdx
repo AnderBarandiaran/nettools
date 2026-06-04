@@ -1,0 +1,76 @@
+---
+title: "Network Security Fundamentals — Firewalls, ACLs, and DMZ Design"
+description: "Essential network security concepts for engineers. Covers firewall placement, ACL design, DMZ architecture, VLANs for segmentation, and defense in depth."
+pubDate: 2026-04-15
+category: general
+tags: ["network security", "firewall", "ACL", "DMZ", "security"]
+featured: false
+---
+
+# Network Security Fundamentals
+
+Network security is not a feature you add to a finished network — it is a design discipline built into every layer of the architecture from the beginning. A network that was designed without security considerations cannot be secured after the fact; it can only be patched. This guide covers the foundational concepts every network engineer must understand to build networks that are not only functional but resilient against attack.
+
+## Defense in Depth
+
+The core principle of network security is defense in depth: layer multiple independent controls so that bypassing one layer does not give an attacker full access to your systems. No single control is perfect. Firewalls can be misconfigured. ACLs can have logic errors. Intrusion prevention systems generate false positives and negatives. But an attacker who bypasses your perimeter firewall and then encounters internal network segmentation, host-based firewalls, and access controls has a much harder path to your sensitive data than one who walks through a single perimeter and finds everything on a flat network.
+
+Defense in depth applies across multiple dimensions: network perimeter controls (firewalls, IPS), network segmentation (VLANs, subnets, routing policies), host-level controls (local firewalls, patching, endpoint detection), application-level controls (authentication, authorization, input validation), and data-level controls (encryption at rest and in transit). Network engineers are primarily responsible for the first two layers, but must understand all layers to design the network appropriately. A network design that exposes unencrypted database connections across an untrusted segment, for instance, fails at the network layer regardless of how strong the application-level controls are.
+
+## Firewalls — Types, Placement, and Policy Design
+
+A firewall is a device or software that filters traffic based on a set of rules. Modern firewalls operate at Layer 4 (stateful inspection) or Layer 7 (next-generation firewalls with application awareness). Stateful firewalls track the state of TCP connections — they know whether a packet is part of an established session or an unsolicited inbound connection attempt. This is fundamentally more secure than stateless packet filtering, which evaluates each packet independently.
+
+**Perimeter firewall** placement: the perimeter firewall sits between the untrusted internet and your internal network. All inbound traffic from the internet must pass through it. The default policy is "deny all inbound, allow all outbound" for the initial traffic, with explicit permits for services you intentionally expose (HTTPS on port 443 to your web servers, SMTP on port 25 to your mail gateway). Outbound traffic is typically allowed more broadly, but should be filtered to prevent compromised hosts from contacting command-and-control infrastructure.
+
+**Internal firewalls** enforce segmentation between internal zones. Even if an attacker gets past the perimeter, internal firewalls limit lateral movement. A firewall between the server VLAN and the user VLAN prevents a compromised workstation from directly accessing database ports. This is the technical implementation of the principle of least privilege: users can reach the application server (port 443), but not the database behind it (port 3306).
+
+Next-generation firewalls (NGFWs) go beyond port-and-protocol filtering to identify applications regardless of port, apply policies to specific users or groups (via integration with Active Directory), and detect and block known threats using signature databases. The trade-off is cost and complexity: NGFWs require significant resources and expertise to operate effectively.
+
+## ACL Design — Cisco IOS Access Control Lists
+
+Access Control Lists on Cisco IOS routers and switches provide packet filtering at the Layer 3 device level. They are not a replacement for a dedicated firewall — they lack stateful inspection and cannot track TCP session state — but they are a valuable layer of defense, particularly for filtering traffic at the routing layer before it reaches a firewall.
+
+**Standard ACLs** (numbered 1–99 or named) match only on source IP address. Place them close to the destination because they cannot filter by destination. Use case: block a specific source subnet from accessing the network at all.
+
+**Extended ACLs** (numbered 100–199 or named) match on source IP, destination IP, protocol (TCP/UDP/ICMP), and source and destination port numbers. Place them close to the source to drop traffic early, before it consumes bandwidth across the network. Use case: permit only HTTPS from the user VLAN to the server VLAN, deny all other access.
+
+ACL design best practices:
+- Use named ACLs rather than numbered — names are self-documenting and support in-place editing
+- Add a `remark` before each rule explaining its purpose
+- Order rules from most-specific to least-specific — the first match wins, so broad permits before specific denies produce incorrect behavior
+- Always end with an explicit `deny ip any any log` — the implicit deny at the end of every ACL is invisible to hit counters; an explicit deny gives you a log entry and a match count
+- Apply ACLs inbound on external-facing interfaces where possible — inbound filtering drops packets before they enter the routing process, saving CPU
+
+## DMZ Architecture — The Demilitarized Zone
+
+A DMZ is a network segment between the internet and your internal network that hosts services that must be accessible from both directions. Web servers, mail gateways, DNS servers, and VPN concentrators typically live in the DMZ. The key characteristic of a DMZ is that no system in it should be trusted with access to the internal network, and no system in the internal network should accept unsolicited connections from the DMZ.
+
+The classic three-zone firewall architecture:
+- **Zone 1 (Internet)**: untrusted, any traffic allowed inbound to the firewall
+- **Zone 2 (DMZ)**: semi-trusted, accessible from the internet on specific ports, can initiate connections to the internet, cannot initiate connections to the internal zone
+- **Zone 3 (Internal)**: trusted, can initiate connections to the DMZ (to fetch application resources, for instance), cannot receive unsolicited connections from the DMZ
+
+Firewall rules for this architecture: allow internet → DMZ on HTTPS/443, SMTP/25 (for the mail gateway), DNS/53. Allow DMZ → internet on HTTPS/443 (for software updates). Allow internal → DMZ on specific application ports (8080 for app server). Deny DMZ → internal (with explicit log rule). Deny internet → internal (implicit).
+
+A common DMZ mistake is putting a database server in the DMZ "because the web server in the DMZ needs to reach it." The correct architecture separates the database into the internal zone: the web server in the DMZ makes application calls to the application server in the internal zone, which queries the database. This keeps database access off the DMZ entirely.
+
+## VLANs for Network Segmentation
+
+VLANs (Virtual LANs) provide Layer 2 segmentation without requiring separate physical switches. A VLAN is a logical broadcast domain — devices in different VLANs cannot communicate at Layer 2, and Layer 3 routing (which can be filtered by ACLs or firewalls) is required for inter-VLAN traffic.
+
+Effective VLAN design segments traffic by trust level and function:
+- **User VLAN** — general workstation traffic, lowest trust
+- **Server VLAN** — application and file servers, medium trust
+- **Management VLAN** — network device management interfaces (switch SSH, router SNMP), high trust, accessible only from administrators' workstations
+- **Voice VLAN** — VoIP phones, separated from data to ensure QoS and prevent data traffic from interfering with voice
+- **Guest VLAN** — internet-only access for visitors, completely isolated from internal resources
+- **DMZ VLAN** — externally-facing servers
+
+VLAN hopping attacks exploit misconfigured trunk ports to inject traffic into unauthorized VLANs. Mitigate by: explicitly setting all unused ports to access mode (never dynamic), disabling DTP (`switchport nonegotiate`), and using a dedicated native VLAN that carries no production traffic. The management VLAN should never be VLAN 1 (the default), which is the native VLAN on most Cisco switches.
+
+## Network Access Control and 802.1X
+
+Network Access Control (NAC) prevents unauthorized devices from connecting to your network. 802.1X is the IEEE standard for port-based access control: before a switch port allows any network traffic, it authenticates the connecting device using a RADIUS server. The device (supplicant) presents credentials — a certificate, a username/password, or a machine certificate — and the switch (authenticator) forwards them to the RADIUS server (authentication server). Only after successful authentication does the switch place the port into the appropriate VLAN.
+
+802.1X is the correct technical control for preventing unauthorized laptops from plugging into a network jack and gaining access. Without it, any device physically connected to your switch gets network access — at least to the VLAN assigned to that port. With 802.1X, the port starts in an unauthorized state and the device must prove its identity before getting network access.

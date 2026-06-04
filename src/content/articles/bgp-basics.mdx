@@ -1,0 +1,90 @@
+---
+title: "BGP Basics for Network Engineers — AS Numbers, Peering, and Route Advertisement"
+description: "Introduction to BGP for network engineers. Covers autonomous systems, eBGP vs iBGP, BGP attributes, route advertisement, and basic Cisco IOS configuration."
+pubDate: 2026-04-10
+category: routing
+tags: ["BGP", "routing", "AS numbers", "network engineering", "internet routing"]
+featured: false
+---
+
+# BGP Basics for Network Engineers
+
+BGP (Border Gateway Protocol) is the routing protocol that holds the internet together. Every internet service provider, cloud provider, and large enterprise with multiple ISP connections uses BGP to exchange reachability information. Understanding BGP is essential for network engineers working on WAN design, ISP connectivity, or any environment where you need control over how traffic enters and exits your network.
+
+## What Is an Autonomous System?
+
+An Autonomous System (AS) is a collection of IP prefixes under the control of a single administrative entity — a company, ISP, or organization — that presents a unified routing policy to the outside world. Each AS is identified by an AS Number (ASN). ASNs can be 16-bit (1–65535, the original range) or 32-bit (extended range, up to 4,294,967,295). The Internet Assigned Numbers Authority (IANA) manages ASN allocation, which is distributed through Regional Internet Registries (RIRs) like ARIN, RIPE, and APNIC.
+
+Private ASNs (similar to RFC 1918 private IP space) are reserved for internal use: 64512–65534 in the 16-bit range and 4200000000–4294967294 in the 32-bit range. Private ASNs are used for iBGP configurations and in cases where an organization peers with an ISP but does not need a globally unique ASN. The ISP typically strips the private ASN from BGP updates before advertising routes to the internet.
+
+When you connect your network to the internet through a single ISP, you typically use the ISP's ASN rather than your own — this is called a single-homed connection. When you connect to two or more ISPs for redundancy or traffic engineering, you need your own public ASN. The routing table you see when you run `show ip bgp summary` on an internet-connected router reflects the current state of the global BGP table, which contains over 900,000 prefixes as of 2025.
+
+## eBGP vs iBGP — External and Internal BGP
+
+BGP operates in two distinct modes depending on whether the two routers sharing BGP sessions belong to the same AS or different ASes.
+
+**eBGP (External BGP)** runs between routers in different autonomous systems. When your edge router peers with your ISP's router, that session is eBGP. eBGP peers are typically directly connected — the administrative distance for eBGP routes in Cisco IOS is 20 (lower is more preferred). By default, eBGP requires the BGP peer's IP address to be reachable via a directly connected interface, and the TTL on BGP TCP packets is set to 1 to enforce this. When an eBGP router advertises a prefix to its peer, it prepends its own ASN to the AS_PATH attribute.
+
+**iBGP (Internal BGP)** runs between routers within the same AS. It is used to distribute BGP-learned routes throughout the AS without running a separate protocol. iBGP is critical in transit networks: the edge router learns a route from eBGP and must share it with all other routers in the AS so they can forward traffic correctly. The administrative distance for iBGP routes is 200 in Cisco IOS — lower than most IGPs but high enough to prefer OSPF or EIGRP routes for internal paths.
+
+A critical iBGP rule: iBGP routers do not re-advertise routes learned from one iBGP peer to another iBGP peer. This prevents routing loops within the AS (since the AS_PATH loop prevention that works for eBGP would not apply to iBGP sessions sharing the same ASN). The consequence is that every iBGP router must peer with every other iBGP router — a full mesh of sessions. For an AS with 10 routers, that is 45 iBGP sessions. For 100 routers, it is 4950. Route Reflectors and BGP Confederations address this scaling problem.
+
+## BGP Path Attributes — How Routes Are Selected
+
+BGP is a path-vector protocol: it does not simply exchange reachability information, it exchanges the full AS-path to reach each prefix, along with a rich set of attributes that influence route selection. The BGP best-path selection algorithm evaluates these attributes in a specific order, stopping as soon as one attribute differentiates two competing routes.
+
+**Weight** — Cisco-proprietary attribute, local to a single router. Higher is preferred. Not advertised to peers. Useful for preferring routes learned from one peer over another on the same router.
+
+**LOCAL_PREF** — Communicated only within an AS (iBGP). Higher is preferred. Default value is 100. Used to tell all routers in the AS which exit point is preferred for a given destination.
+
+**AS_PATH length** — The list of ASNs the route has traversed. Shorter paths are preferred. This is the primary mechanism for loop prevention: if a router sees its own ASN in the AS_PATH, it discards the route.
+
+**ORIGIN** — How the route was introduced into BGP. IGP (i) is preferred over EGP (e), which is preferred over INCOMPLETE (?).
+
+**MED (Multi-Exit Discriminator)** — Communicated to external peers to suggest which entry point into your AS they should use. Lower MED is preferred. Only comparable between routes from the same AS by default.
+
+**eBGP over iBGP** — Routes learned via eBGP are preferred over routes learned via iBGP.
+
+**IGP metric to next-hop** — Prefer the route with the lowest interior cost to reach the BGP next-hop. This ties back to OSPF or EIGRP metrics.
+
+## Route Advertisement and Prefix Filtering
+
+BGP only advertises what you explicitly tell it to. You control what your router announces to peers using two mechanisms: the `network` command and redistribution.
+
+The `network` command in BGP is different from the `network` command in OSPF. In BGP, it does not enable BGP on an interface — it instructs BGP to originate a route for the specified prefix if that exact prefix exists in the routing table. For example:
+
+```
+router bgp 65001
+ network 203.0.113.0 mask 255.255.255.0
+```
+
+This advertises `203.0.113.0/24` to BGP peers, but only if the routing table contains an exact match for `203.0.113.0/24`. If the route is absent from the routing table (because the link is down), BGP withdraws the advertisement automatically.
+
+Prefix lists and route maps allow granular control over what is received and what is advertised. Best practice is to apply inbound prefix filters on eBGP sessions to accept only prefixes within valid public ranges, reject RFC 1918 space, and limit the maximum prefix count (using `neighbor maximum-prefix`) to protect against BGP table explosion from misconfigured or malicious peers.
+
+## Basic Cisco IOS BGP Configuration
+
+A minimal eBGP configuration connecting to a single ISP:
+
+```
+router bgp 65001
+ bgp router-id 1.1.1.1
+ neighbor 203.0.113.254 remote-as 64512
+ network 198.51.100.0 mask 255.255.255.0
+```
+
+This configures BGP process 65001, sets the router-ID to 1.1.1.1, establishes an eBGP session with the ISP at 203.0.113.254 (which belongs to AS 64512), and advertises your prefix 198.51.100.0/24.
+
+Verification commands:
+
+- `show ip bgp summary` — shows all BGP peers, their state (Idle, Active, Established), the number of prefixes received, and session uptime
+- `show ip bgp` — displays the full BGP table with best-path indicators
+- `show ip bgp 198.51.100.0` — shows all paths for a specific prefix and which attributes determined the best path
+- `show ip bgp neighbors 203.0.113.254` — detailed session information including capabilities, hold time, keepalive interval, and prefix counts
+- `debug ip bgp 203.0.113.254 events` — real-time BGP event log for a specific peer (use with caution in production)
+
+## BGP Convergence and Stability
+
+BGP convergence is intentionally slow compared to IGPs. Keepalive timers default to 60 seconds, and the hold time is 180 seconds — a router waits three minutes before declaring a peer down. This conservatism is deliberate: the internet carries over a billion packets per second, and a flapping BGP session that alternately advertises and withdraws a prefix would cascade instability to thousands of downstream routers. Route dampening can suppress flapping prefixes automatically, penalizing routes that withdraw and re-advertise repeatedly within a short window.
+
+For enterprise networks connecting to two ISPs, BGP is the correct tool for controlling traffic flows, implementing failover, and doing traffic engineering. Static routes or policy routing can handle simple dual-homed scenarios, but BGP provides automatic failover and the ability to influence path selection based on detailed attributes.

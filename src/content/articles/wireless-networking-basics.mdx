@@ -1,0 +1,82 @@
+---
+title: "Wireless Networking Fundamentals — 802.11 Standards, SSID, and Security"
+description: "Essential wireless networking concepts for network engineers. Covers 802.11 standards, frequency bands, SSID configuration, WPA3 security, and site survey basics."
+pubDate: 2026-04-30
+category: general
+tags: ["wireless", "WiFi", "802.11", "WPA3", "network engineering"]
+featured: false
+---
+
+# Wireless Networking Fundamentals
+
+Wireless networking has moved from a convenience feature to a primary access medium in most enterprise environments. Understanding the 802.11 family of standards, RF physics basics, security protocols, and deployment considerations is essential for any network engineer who designs, manages, or troubleshoots modern networks. This guide covers the core concepts without assuming radio engineering expertise.
+
+## The 802.11 Standard Family
+
+The IEEE 802.11 working group has produced a series of amendments to the base wireless LAN standard, each improving data rates, range, efficiency, or spectrum usage. The most relevant generations for current deployments:
+
+**802.11a (1999)**: 5 GHz band, up to 54 Mbps. Still used in some legacy enterprise equipment. The 5 GHz band has more available channels and less interference than 2.4 GHz.
+
+**802.11b (1999)**: 2.4 GHz band, up to 11 Mbps. Now obsolete, but 802.11 devices in the 2.4 GHz band must coexist with it (legacy compatibility slows down the entire network if any 802.11b client associates).
+
+**802.11g (2003)**: 2.4 GHz band, up to 54 Mbps. Backward-compatible with 802.11b. This backward compatibility has a performance cost: when a b-client is present, the access point must use protection mechanisms (RTS/CTS) that reduce throughput for all clients.
+
+**802.11n (Wi-Fi 4, 2009)**: 2.4 GHz and 5 GHz, up to 600 Mbps. Introduced MIMO (Multiple Input Multiple Output) — using multiple antennas to transmit and receive simultaneously on separate spatial streams. A 2×2 MIMO configuration provides two spatial streams; 3×3 provides three. Also introduced channel bonding (40 MHz wide channels) to double throughput over the standard 20 MHz channel.
+
+**802.11ac (Wi-Fi 5, 2013)**: 5 GHz only, up to 6.9 Gbps (theoretical, multi-user). Expanded MIMO to MU-MIMO (Multi-User MIMO), allowing the AP to transmit to multiple clients simultaneously. Introduced 80 MHz and 160 MHz channel widths. Wave 2 additions included 4×4 MIMO and DL-MU-MIMO. The dominant enterprise standard from 2015 through 2022.
+
+**802.11ax (Wi-Fi 6, 2019) and Wi-Fi 6E (2021)**: 2.4 GHz, 5 GHz, and (for 6E) the new 6 GHz band. Maximum theoretical throughput per AP is 9.6 Gbps. The key innovations are OFDMA (Orthogonal Frequency Division Multiple Access) for efficient multi-client transmission, BSS Coloring to reduce interference from neighboring APs, and Target Wake Time (TWT) for IoT device power savings. 802.11ax is the current generation and the standard for new enterprise deployments.
+
+**802.11be (Wi-Fi 7, 2024)**: Adds 320 MHz channel width, Multi-Link Operation (MLO) for simultaneous operation on multiple bands, and theoretical throughput up to 46 Gbps. Available in consumer products from 2024; enterprise adoption is beginning.
+
+## Frequency Bands — 2.4 GHz, 5 GHz, and 6 GHz
+
+The choice of frequency band involves fundamental trade-offs between range, speed, and interference.
+
+**2.4 GHz**: longer wavelength provides better range and better penetration through walls, floors, and other obstructions. However, only three non-overlapping 20 MHz channels are available in North America (channels 1, 6, and 11). The band is heavily congested in urban environments with Bluetooth devices, microwave ovens, baby monitors, and neighboring Wi-Fi networks all sharing the spectrum. In high-density environments, the 2.4 GHz band is effectively unusable for high-throughput applications. Use 2.4 GHz for IoT devices and clients that need range over speed.
+
+**5 GHz**: shorter wavelength, higher throughput, 25 non-overlapping 20 MHz channels in the U.S. (channels 36–165 in the UNII-1, UNII-2A, UNII-2C, and UNII-3 bands), less congestion. DFS (Dynamic Frequency Selection) channels (52–144) require radar detection support — the AP must scan for radar signals and vacate the channel if detected, which can cause temporary service interruption. Non-DFS channels (36–48, 149–165) are preferred for high-density deployments. Use 5 GHz for laptops, phones, and devices needing high throughput.
+
+**6 GHz (Wi-Fi 6E and Wi-Fi 7)**: 1200 MHz of new spectrum in the U.S. (varying by country), providing up to 59 non-overlapping 20 MHz channels or 7 non-overlapping 160 MHz channels. The 6 GHz band is reserved for Wi-Fi use — no legacy devices, no Bluetooth interference, no existing congestion. It provides the cleanest spectrum available but with the shortest range. Requires Wi-Fi 6E or Wi-Fi 7 hardware on both the AP and the client.
+
+## SSID Design and Configuration
+
+An SSID (Service Set Identifier) is the name of a wireless network. In enterprise environments, SSIDs are mapped to specific VLANs, security policies, and network access policies. A well-designed SSID structure is important for security and user experience.
+
+**Single SSID per band vs. band steering**: historically, enterprises configured separate SSIDs for 2.4 GHz and 5 GHz (e.g., "Corporate" and "Corporate-5G") and trained users to prefer 5 GHz. Modern WLC (Wireless LAN Controller) implementations support band steering — the AP forces capable clients to associate on 5 GHz even if they probe on 2.4 GHz. This simplifies SSID design (one SSID for all bands) while keeping clients on the optimal band.
+
+**Recommended enterprise SSIDs**:
+- **Corporate** — authenticated via 802.1X (WPA2/WPA3 Enterprise), full internal access
+- **Guest** — pre-shared key or captive portal, internet-only access, isolated VLAN
+- **IoT** — dedicated for smart devices, restricted VLAN with ACLs limiting lateral movement
+
+Minimize the number of SSIDs. Each SSID generates its own beacon frames (at the base rate of 1 Mbps on 2.4 GHz), and each additional SSID consumes airtime for management overhead. More than four SSIDs on a single AP begins to noticeably reduce throughput in high-density environments.
+
+## WPA3 — Current Wireless Security Standard
+
+WPA3 (Wi-Fi Protected Access 3) is the current mandatory standard for new wireless deployments. It replaces WPA2, which has known vulnerabilities including the KRACK attack against the 4-way handshake and dictionary attacks against weak pre-shared keys.
+
+**WPA3-Personal** uses Simultaneous Authentication of Equals (SAE), which replaces the WPA2-PSK 4-way handshake. SAE is a password-authenticated key exchange that is immune to offline dictionary attacks — an attacker who captures the handshake cannot test passwords offline. SAE also provides forward secrecy, meaning that compromising the current session key does not allow decryption of previously captured sessions.
+
+**WPA3-Enterprise** uses 192-bit minimum security for commercial national security systems and updated cryptographic suite requirements. For most organizations, WPA2-Enterprise with 802.1X and EAP-TLS (certificate-based authentication) remains a strong choice. WPA3-Enterprise adds the Suite B cryptographic requirements.
+
+**Transition mode**: most APs support WPA2/WPA3 transition mode, which allows both WPA2 and WPA3 clients to associate with the same SSID. WPA3 clients negotiate the more secure SAE handshake; WPA2 clients fall back to PSK. This eases migration but does reduce the security benefit for WPA3 clients (they can be downgraded by an active attacker in some implementations). For maximum security, run WPA3-only SSIDs and migrate clients to WPA3-capable hardware.
+
+**Management Frame Protection (MFP/PMF)**: 802.11w Management Frame Protection prevents attackers from forging deauthentication and disassociation frames — a common denial-of-service attack vector. WPA3 mandates PMF; in WPA2/WPA3 transition mode, PMF is set to optional (clients that support it use it, others do not).
+
+## Site Survey Basics — Planning Before Deploying
+
+A site survey is a systematic assessment of the RF environment before and after deploying wireless. Skipping the site survey is the single most common cause of poor enterprise Wi-Fi performance.
+
+**Predictive survey** (pre-deployment): use survey software (Ekahau, iBwave, NetSpot Pro) to import floor plans, define wall materials and their RF attenuation properties, set AP model and antenna characteristics, and simulate coverage. The software predicts signal strength, channel utilization, and data rate coverage throughout the space. Output is a heatmap showing where coverage is adequate and where APs must be added or repositioned.
+
+**Passive site survey** (post-deployment): walk the space with a laptop running survey software, recording measured signal strength, noise floor, channel utilization, and data rates at each location. Compare against the predictive survey to identify gaps and adjust AP placement or transmit power.
+
+Key RF parameters to optimize:
+
+- **RSSI (Received Signal Strength Indicator)**: target −65 dBm or better for voice and video; −70 dBm acceptable for data. Below −75 dBm, packet error rates rise steeply.
+- **SNR (Signal-to-Noise Ratio)**: target 25 dB or better. SNR = RSSI − noise floor. If the noise floor is −90 dBm and RSSI is −70 dBm, SNR is 20 dB (borderline).
+- **Channel utilization**: keep below 50% per channel. High utilization causes retransmissions and reduced effective throughput.
+- **AP overlap**: ensure each location is covered by at least two APs at −65 dBm or better for seamless roaming. The −65 dBm contour of adjacent APs should overlap by 15–20%.
+
+Cell size tuning: larger cells are not better. A large cell means clients at the edge associate at low data rates (6 or 9 Mbps vs the 300+ Mbps available close to the AP), and their slow transmissions consume more airtime proportionally, degrading throughput for everyone on the AP. Reduce transmit power on APs in high-density environments to create smaller, faster cells and encourage clients to roam to the nearest AP.

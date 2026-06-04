@@ -109,5 +109,72 @@ const jsonLd = {
       </table>
     </div>
 
+    <h2 style="font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 1.25rem; color: var(--text-1); letter-spacing: -0.02em; margin-bottom: 0.75rem; margin-top: 2rem;">
+      What is subnetting and why it matters
+    </h2>
+    <p style="font-size: 0.9375rem; color: var(--text-2); line-height: 1.7; margin-bottom: 1.25rem;">
+      Subnetting is the process of dividing a single IP network into smaller, logically isolated segments called subnets. The fundamental motivation is efficiency: the original IPv4 address space was designed for a much simpler internet, and without subnetting every organisation would waste enormous blocks of addresses that go unused. A Class B allocation, for example, hands you 65,534 host addresses. If you only need 300 hosts, the remaining 65,234 addresses sit idle — an unacceptable waste when public IPv4 space is exhausted.
+    </p>
+    <p style="font-size: 0.9375rem; color: var(--text-2); line-height: 1.7; margin-bottom: 1.25rem;">
+      Beyond address conservation, subnetting enforces security boundaries. Devices on different subnets cannot communicate directly — they must pass through a router or Layer 3 switch, where access control lists and firewall rules can inspect and filter traffic. This containment limits the blast radius of a compromised host: malware that spreads via broadcast (ARP, NetBIOS, multicast) stays within the subnet boundary. Subnetting also reduces broadcast domain size, which directly lowers the CPU load on every host in the segment — fewer broadcast frames to process means better performance for everyone. For network engineers, mastering subnetting is not optional; it is the bedrock skill that every other networking concept builds upon.
+    </p>
+
+    <h2 style="font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 1.25rem; color: var(--text-1); letter-spacing: -0.02em; margin-bottom: 0.75rem; margin-top: 2rem;">
+      How to read CIDR notation
+    </h2>
+    <p style="font-size: 0.9375rem; color: var(--text-2); line-height: 1.7; margin-bottom: 1.25rem;">
+      CIDR (Classless Inter-Domain Routing) notation expresses an IP address and its subnet mask together using a slash suffix. The number after the slash is the prefix length — the count of consecutive 1-bits in the subnet mask, reading from the most significant bit. For example, <code style="font-family: 'Fira Code', monospace; font-size: 0.875em; background: var(--surface-secondary); padding: 0.1em 0.35em; border-radius: 3px; color: var(--accent-text);">192.168.10.0/24</code> means the first 24 bits are the network portion and the remaining 8 bits identify individual hosts. This maps to the dotted-decimal mask <code style="font-family: 'Fira Code', monospace; font-size: 0.875em; background: var(--surface-secondary); padding: 0.1em 0.35em; border-radius: 3px; color: var(--accent-text);">255.255.255.0</code> (24 ones followed by 8 zeros). CIDR replaced the old classful A/B/C system, which forced you to use fixed masks regardless of actual need. With CIDR, a /27 gives you 30 usable hosts and a /16 gives you over 65,000 — you choose the size that fits. When reading a CIDR block, calculate usable hosts as 2^(32−prefix) − 2 (subtract network address and broadcast address).
+    </p>
+
+    <h2 style="font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 1.25rem; color: var(--text-1); letter-spacing: -0.02em; margin-bottom: 0.75rem; margin-top: 2rem;">
+      Common subnetting mistakes
+    </h2>
+    <p style="font-size: 0.9375rem; color: var(--text-2); line-height: 1.7; margin-bottom: 1.25rem;">
+      The most frequent mistake is assigning a host address that coincides with the network or broadcast address. Every subnet has two reserved addresses: the first (all host bits zero) is the network address, and the last (all host bits one) is the broadcast. Assigning <code style="font-family: 'Fira Code', monospace; font-size: 0.875em; background: var(--surface-secondary); padding: 0.1em 0.35em; border-radius: 3px; color: var(--accent-text);">192.168.1.0</code> or <code style="font-family: 'Fira Code', monospace; font-size: 0.875em; background: var(--surface-secondary); padding: 0.1em 0.35em; border-radius: 3px; color: var(--accent-text);">192.168.1.255</code> to a host in a /24 is invalid and will cause unpredictable behavior. A second common error is overlapping subnets — allocating <code style="font-family: 'Fira Code', monospace; font-size: 0.875em; background: var(--surface-secondary); padding: 0.1em 0.35em; border-radius: 3px; color: var(--accent-text);">10.0.0.0/24</code> to one VLAN and <code style="font-family: 'Fira Code', monospace; font-size: 0.875em; background: var(--surface-secondary); padding: 0.1em 0.35em; border-radius: 3px; color: var(--accent-text);">10.0.0.128/25</code> to another, which overlap because /25 is contained within /24. Third: using a subnet mask that does not align to a power-of-two boundary (non-contiguous masks), which confuses routers and is rejected outright by modern IOS.
+    </p>
+
+    <h2 style="font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 1.25rem; color: var(--text-1); letter-spacing: -0.02em; margin-bottom: 0.75rem; margin-top: 2rem;">
+      Subnetting in enterprise networks
+    </h2>
+    <p style="font-size: 0.9375rem; color: var(--text-2); line-height: 1.7; margin-bottom: 1.25rem;">
+      Enterprise network design typically allocates subnets by function and security zone rather than by physical location alone. A common pattern: a /8 or /16 private block is divided into regional supernets (/16 or /20), each region is further divided into site blocks (/22 or /23), and each site block is subdivided into function-specific subnets — users on /24, servers on /26, management on /28, and point-to-point WAN links on /30. This hierarchical approach keeps the routing table small through summarization: edge routers advertise only the site /22, not every individual /24 and /26 within it. When you need to grow the address space, you can simply extend the hierarchy by carving a new site block from the regional supernet, without redesigning the entire scheme.
+    </p>
+
+    <h2 style="font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 1.25rem; color: var(--text-1); letter-spacing: -0.02em; margin-bottom: 0.75rem; margin-top: 2rem;">
+      Production subnet reference — most-used sizes
+    </h2>
+    <div style="overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem; border: 1px solid var(--border);">
+        <thead>
+          <tr style="background-color: var(--canvas);">
+            <th style="padding: 0.625rem 0.875rem; text-align: left; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); border-bottom: 1px solid var(--border);">CIDR</th>
+            <th style="padding: 0.625rem 0.875rem; text-align: left; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); border-bottom: 1px solid var(--border);">Typical use</th>
+            <th style="padding: 0.625rem 0.875rem; text-align: right; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); border-bottom: 1px solid var(--border);">Usable hosts</th>
+          </tr>
+        </thead>
+        <tbody>
+          {[
+            ['/30', 'WAN point-to-point links (router-to-router)', '2'],
+            ['/29', 'DMZ segments, small server clusters', '6'],
+            ['/28', 'Management VLANs, printers, IoT devices', '14'],
+            ['/27', 'Small office user segments, lab networks', '30'],
+            ['/26', 'Medium office segments', '62'],
+            ['/25', 'Larger department LANs', '126'],
+            ['/24', 'Standard LAN subnet — floor or building', '254'],
+            ['/23', 'Merged dual-floor or dual-building LAN', '510'],
+            ['/22', 'Site-level allocation block (4× /24)', '1,022'],
+            ['/20', 'Regional or campus block', '4,094'],
+            ['/16', 'Large corporate address space', '65,534'],
+          ].map(([cidr, use, hosts], i) => (
+            <tr style={{ backgroundColor: i % 2 === 1 ? 'var(--canvas)' : 'var(--surface)' }}>
+              <td style="padding: 0.5rem 0.875rem; font-family: 'Fira Code', monospace; font-size: 0.875rem; color: var(--accent-text); border-bottom: 1px solid var(--border-subtle);">{cidr}</td>
+              <td style="padding: 0.5rem 0.875rem; font-size: 0.875rem; color: var(--text-2); border-bottom: 1px solid var(--border-subtle);">{use}</td>
+              <td style="padding: 0.5rem 0.875rem; font-family: 'Fira Code', monospace; font-size: 0.875rem; color: var(--text-2); text-align: right; border-bottom: 1px solid var(--border-subtle);">{hosts}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+
   </article>
 </BaseLayout>

@@ -53,19 +53,20 @@ const jsonLd = {
   </div>
 
   <article class="max-w-3xl mx-auto px-4 pb-16 prose prose-slate">
-    <h2>What is VLSM?</h2>
-    <p>Variable Length Subnet Masking (VLSM) allows a network to use different subnet masks
-    for different subnets within the same network. Unlike classful subnetting where all
-    subnets share the same mask, VLSM assigns each subnet exactly the block size it needs.</p>
+    <h2>Why VLSM is essential for modern networks</h2>
+    <p>Variable Length Subnet Masking (VLSM) is the capability to apply different subnet masks to different subnets carved from the same parent block. Without VLSM, every subnet in a network must use the same prefix length — an approach called Fixed Length Subnet Masking (FLSM). FLSM was workable when IP addresses were plentiful and networks were small, but it forces every segment — regardless of actual host count — to receive the same number of addresses. The result is severe address waste: if your largest subnet needs 200 hosts and your WAN links each need 2, FLSM forces you to give every WAN link a /24 with 254 usable addresses, of which 252 are immediately wasted.</p>
+    <p>VLSM eliminates this waste by allowing the network designer to allocate exactly the right block size for each segment. A LAN with 200 users gets a /24. A server VLAN with 20 servers gets a /27. A management segment with 10 devices gets a /28. A WAN link between two routers gets a /30. All of these come from the same parent block with no wasted space between them. In an era where public IPv4 addresses cost real money and private RFC 1918 space must serve hundreds of VLANs across multiple sites, VLSM is not optional — it is the baseline expectation for any professionally designed network. CCNA and CCNP candidates are expected to calculate VLSM allocations by hand under exam conditions.</p>
 
-    <h2>VLSM design rules</h2>
-    <p>The canonical VLSM algorithm: sort requirements largest-to-smallest, then assign
-    the smallest block that satisfies each requirement in order. This guarantees
-    non-overlapping, contiguous allocation with minimal wasted space.</p>
+    <h2>VLSM vs fixed-length subnetting</h2>
+    <p>The difference between VLSM and FLSM becomes concrete with a simple example. Suppose you have the block <code>192.168.10.0/24</code> and need four subnets: one with 100 hosts, one with 50 hosts, one with 25 hosts, and one WAN link needing 2 addresses.</p>
+    <p>With FLSM, you must size every subnet for the largest requirement. A /25 provides 126 usable hosts, which covers 100. So all four subnets get /25 — but you only have two /25 blocks in a /24, so you cannot fit all four subnets. You would need a /23 parent block. With VLSM: the 100-host segment gets a /25 (126 usable), the 50-host segment gets a /26 (62 usable), the 25-host segment gets a /27 (30 usable), and the WAN link gets a /30 (2 usable). Total addresses used: 128 + 64 + 32 + 4 = 228 out of 256. Everything fits in the original /24 with space to spare for future growth.</p>
 
-    <h2>WAN links and point-to-point subnets</h2>
-    <p>Serial links between routers typically require only 2 IP addresses — one per end.
-    Use <code>/30</code> (2 usable hosts) for traditional point-to-point links, or
-    <code>/31</code> per RFC 3021 on modern IOS versions that support it.</p>
+    <h2>Real-world VLSM design example</h2>
+    <p>Consider a branch office connected to headquarters via a WAN router. The branch has: a user VLAN (80 hosts), a server VLAN (15 hosts), a VoIP VLAN (40 phones), a management VLAN (8 devices), and a WAN link to HQ. The allocated block is <code>10.50.0.0/22</code> (1022 usable addresses).</p>
+    <p>Working largest-to-smallest: User VLAN (80 hosts) → /25 gives 126 usable → allocate <code>10.50.0.0/25</code>. VoIP VLAN (40 phones) → /26 gives 62 usable → allocate <code>10.50.0.128/26</code>. Server VLAN (15 hosts) → /27 gives 30 usable → allocate <code>10.50.0.192/27</code>. Management VLAN (8 devices) → /28 gives 14 usable → allocate <code>10.50.0.224/28</code>. WAN link (2 addresses) → /30 gives 2 usable → allocate <code>10.50.0.240/30</code>. Total used: 128+64+32+16+4 = 244 addresses from a 1022-address block. The remaining space in the /22 is reserved for future expansion — additional VLANs, new floors, additional WAN links — all carved without touching existing allocations.</p>
+
+    <h2>VLSM in Cisco environments</h2>
+    <p>Cisco IOS has supported VLSM since the early 1990s. All modern Cisco routing protocols — OSPF, EIGRP, IS-IS, and BGP — carry the subnet mask in their routing updates, making them VLSM-capable (classless protocols). The legacy RIP version 1 does not carry mask information and therefore cannot support VLSM; use RIPv2 or any other protocol if VLSM is required.</p>
+    <p>When configuring a router interface for a VLSM-allocated subnet, specify the exact mask for that subnet. For the /27 server VLAN from the example above: <code>ip address 10.50.0.193 255.255.255.224</code>. Cisco IOS will correctly compute the network address, broadcast address, and directly connected route. Use <code>show ip route</code> to verify the connected route appears with the correct prefix length. A common mistake is entering the wrong mask — IOS accepts any syntactically valid mask without warning, so the interface will come up but routing will be incorrect if the mask does not match the subnet plan.</p>
   </article>
 </BaseLayout>

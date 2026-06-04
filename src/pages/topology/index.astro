@@ -161,5 +161,27 @@ const jsonLd = {
       or into a GNS3/Packet Tracer startup config.
     </p>
 
+    <h2>How to design a scalable network topology</h2>
+    <p>
+      Scalable network design follows the three-layer hierarchical model: access, distribution, and core. The access layer connects end devices — workstations, phones, printers, and servers — to the network. Access switches are configured with VLANs, port security, and spanning tree PortFast. The distribution layer aggregates access switches, enforces inter-VLAN routing policies, and connects to the core. Distribution-layer switches run Layer 3, hold the default gateways for each access VLAN, and apply QoS and security policies. The core layer provides fast, reliable transport between distribution blocks and to the WAN edge. Core switches carry no user traffic directly — they forward packets as quickly as possible between distribution switches.
+    </p>
+    <p>
+      This separation of concerns makes the network scalable: adding a new floor means adding access switches and connecting them to the existing distribution block without redesigning the core. The distribution layer can be expanded independently. The core remains unchanged as the network grows at the edges. In smaller networks (under 200 devices), the distribution and core layers are often collapsed into a single tier — called a collapsed core — where two high-end switches serve both distribution and core functions with a redundant link between them.
+    </p>
+    <p>
+      Redundancy is built into every layer. At the access layer, dual uplinks from each access switch to two distribution switches protect against an uplink failure. Spanning Tree Protocol (or its rapid variant, RSTP) blocks one uplink to prevent loops while keeping it ready for failover. At the distribution and core layers, redundant links between switches are handled by EtherChannel (aggregating multiple physical links into one logical link) or by OSPF/EIGRP routing over multiple paths, which provides per-packet or per-flow load balancing in addition to fast failover.
+    </p>
+
+    <h2>IP addressing best practices for network design</h2>
+    <p>
+      A good IP addressing plan is hierarchical, summarizable, and documented. Start with the largest block you will ever need and subdivide it systematically. Assign address ranges by function and security zone, not by physical location alone. Users, servers, management devices, and WAN links should each occupy distinct, non-overlapping ranges so that ACLs and firewall rules can be expressed with simple wildcard masks. For example: <code>10.0.0.0/8</code> as the master block, <code>10.1.0.0/16</code> for headquarters, <code>10.2.0.0/16</code> for site A, <code>10.3.0.0/16</code> for site B, and within each /16, divide <code>0.0–127.x</code> for users, <code>128.x–191.x</code> for servers, and <code>192.x–255.x</code> for infrastructure.
+    </p>
+    <p>
+      Reserve the first and last subnet in every block for future use. Never allocate the entire parent block at once — leave 20–30% unallocated for growth. Use consistent subnet sizes within each tier: all server subnets use /26, all user subnets use /24, all management subnets use /28. Consistency makes the plan easier to document, easier to audit, and easier to encode in firewall rules. Point-to-point WAN links always use /30 (or /31 per RFC 3021 on devices that support it). Loopback interfaces on routers use /32 and should come from a dedicated <code>10.255.0.0/24</code> range — they are not connected subnets and should be kept separate from transit and LAN space.
+    </p>
+    <p>
+      Document every allocation in a dedicated IPAM (IP Address Management) system — even a spreadsheet — before assigning any addresses. Undocumented networks accumulate quickly, overlap occurs, and the resulting troubleshooting is disproportionately expensive. For IPv6, follow the same hierarchical principle: a /48 per site, /64 per subnet, and document the plan before assignment. The topology simulator's auto-assign feature demonstrates the hierarchical /30 allocation principle — every link receives its own contiguous /30 block from the parent pool, with no overlaps and no wasted space between allocations.
+    </p>
+
   </article>
 </BaseLayout>
