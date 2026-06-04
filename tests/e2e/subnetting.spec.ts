@@ -15,7 +15,7 @@ test.describe('Subnet Calculator', () => {
     await page.getByLabel('Calculate subnet').click();
 
     await expect(page.getByText('192.168.1.0').first()).toBeVisible();
-    await expect(page.getByText('192.168.1.255')).toBeVisible();
+    await expect(page.getByText('192.168.1.255').first()).toBeVisible();
     await expect(page.getByText('192.168.1.1')).toBeVisible();
     await expect(page.getByText('192.168.1.254')).toBeVisible();
     await expect(page.getByText('254', { exact: true }).first()).toBeVisible();
