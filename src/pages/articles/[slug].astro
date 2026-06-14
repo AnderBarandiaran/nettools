@@ -1,7 +1,6 @@
 ---
 import { getCollection, render } from 'astro:content';
 import BaseLayout from '../../components/layout/BaseLayout.astro';
-import AdSlot from '../../components/ads/AdSlot.astro';
 
 export async function getStaticPaths() {
   const articles = await getCollection('articles');
