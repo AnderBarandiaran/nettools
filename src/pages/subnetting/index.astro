@@ -1,6 +1,5 @@
 ---
 import BaseLayout from '../../components/layout/BaseLayout.astro';
-import AdSlot from '../../components/ads/AdSlot.astro';
 import SubnetCalculator from '../../components/islands/SubnetCalculator';
 
 const jsonLd = {
@@ -50,17 +49,9 @@ const jsonLd = {
     </p>
   </header>
 
-  <div class="flex justify-center pb-6">
-    <AdSlot slot="leaderboard" />
-  </div>
-
   <section class="max-w-6xl mx-auto px-4 pb-8">
     <SubnetCalculator client:load />
   </section>
-
-  <div class="flex justify-center pb-8">
-    <AdSlot slot="rectangle" />
-  </div>
 
   <!-- SEO content -->
   <article class="max-w-3xl mx-auto px-4 pb-16">
@@ -71,12 +62,90 @@ const jsonLd = {
     <p style="font-size: 0.9375rem; color: var(--text-2); line-height: 1.7; margin-bottom: 1.25rem;">
       Enter any IPv4 address with a CIDR prefix (e.g., <code style="font-family: 'Fira Code', monospace; font-size: 0.875em; background: var(--surface-secondary); padding: 0.1em 0.35em; border-radius: 3px; color: var(--accent-text);">192.168.1.0/24</code>)
       or with a dotted-decimal subnet mask (e.g., <code style="font-family: 'Fira Code', monospace; font-size: 0.875em; background: var(--surface-secondary); padding: 0.1em 0.35em; border-radius: 3px; color: var(--accent-text);">10.0.0.0 255.0.0.0</code>).
+      You can also enter a host address like <code style="font-family: 'Fira Code', monospace; font-size: 0.875em; background: var(--surface-secondary); padding: 0.1em 0.35em; border-radius: 3px; color: var(--accent-text);">10.1.4.17/22</code> — the calculator
+      derives the correct network address automatically by zeroing out the host bits.
+    </p>
+
+    <h2 style="font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 1.25rem; color: var(--text-1); letter-spacing: -0.02em; margin-bottom: 0.75rem; margin-top: 2rem;">
+      What subnetting actually does
+    </h2>
+    <p style="font-size: 0.9375rem; color: var(--text-2); line-height: 1.7; margin-bottom: 1.25rem;">
+      An IPv4 address is a 32-bit number split into two parts: the <strong style="color: var(--text-1);">network portion</strong> and the <strong style="color: var(--text-1);">host portion</strong>.
+      The subnet mask is a second 32-bit number whose job is to draw the boundary between those two parts —
+      all the 1-bits in the mask cover the network portion, and all the 0-bits cover the host portion.
+      Subnetting is the act of lengthening the network portion (adding more 1-bits to the mask) to divide
+      a larger address block into smaller, isolated segments.
+    </p>
+    <p style="font-size: 0.9375rem; color: var(--text-2); line-height: 1.7; margin-bottom: 1.25rem;">
+      Why does isolation matter? Every device on a subnet shares a broadcast domain. When one host sends
+      an ARP request or a broadcast frame, every other device on the same subnet receives and processes it.
+      A flat /16 with 65,000 hosts generates a constant flood of broadcast traffic that degrades performance
+      and makes troubleshooting nearly impossible. Splitting it into /24s limits broadcast traffic to
+      254-host segments, makes routing policies granular, and lets you apply firewall rules between
+      departments or server tiers.
+    </p>
+
+    <h2 style="font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 1.25rem; color: var(--text-1); letter-spacing: -0.02em; margin-bottom: 0.75rem; margin-top: 2rem;">
+      How the arithmetic works
+    </h2>
+    <p style="font-size: 0.9375rem; color: var(--text-2); line-height: 1.7; margin-bottom: 1.25rem;">
+      Every output this calculator produces comes from three bitwise operations on a 32-bit integer:
+    </p>
+    <ul style="font-size: 0.9375rem; color: var(--text-2); line-height: 1.7; margin-bottom: 1.25rem; padding-left: 1.5rem;">
+      <li style="margin-bottom: 0.5rem;"><strong style="color: var(--text-1);">Network address</strong> — IP AND mask. Every bit where the mask is 1 is kept; every bit where the mask is 0 is zeroed. The result is the first address in the subnet and is not assignable to a host.</li>
+      <li style="margin-bottom: 0.5rem;"><strong style="color: var(--text-1);">Broadcast address</strong> — IP OR NOT(mask). All the host bits are set to 1. The result is the last address in the subnet, reserved for subnet-wide broadcasts, and also not assignable.</li>
+      <li style="margin-bottom: 0.5rem;"><strong style="color: var(--text-1);">Usable host range</strong> — network address + 1 through broadcast address − 1. The count is 2^(32 − prefix) − 2.</li>
+      <li style="margin-bottom: 0.5rem;"><strong style="color: var(--text-1);">Wildcard mask</strong> — NOT(mask), the bitwise inverse. Used in Cisco ACLs and OSPF <code style="font-family: 'Fira Code', monospace; font-size: 0.875em; background: var(--surface-secondary); padding: 0.1em 0.35em; border-radius: 3px; color: var(--accent-text);">network</code> statements. Where the subnet mask has a 0-bit (host bits), the wildcard has a 1-bit (don't care).</li>
+    </ul>
+
+    <h2 style="font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 1.25rem; color: var(--text-1); letter-spacing: -0.02em; margin-bottom: 0.75rem; margin-top: 2rem;">
+      Worked example: 172.16.0.0/20
+    </h2>
+    <p style="font-size: 0.9375rem; color: var(--text-2); line-height: 1.7; margin-bottom: 1rem;">
+      Take the block <code style="font-family: 'Fira Code', monospace; font-size: 0.875em; background: var(--surface-secondary); padding: 0.1em 0.35em; border-radius: 3px; color: var(--accent-text);">172.16.0.0/20</code>.
+      A /20 prefix means 20 network bits and 12 host bits. The mask in binary is
+      20 ones followed by 12 zeros: <code style="font-family: 'Fira Code', monospace; font-size: 0.875em; background: var(--surface-secondary); padding: 0.1em 0.35em; border-radius: 3px; color: var(--accent-text);">11111111.11111111.11110000.00000000</code>,
+      which is <code style="font-family: 'Fira Code', monospace; font-size: 0.875em; background: var(--surface-secondary); padding: 0.1em 0.35em; border-radius: 3px; color: var(--accent-text);">255.255.240.0</code> in dotted decimal.
+    </p>
+    <div style="overflow-x: auto; margin-bottom: 1.25rem;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem; border: 1px solid var(--border);">
+        <thead>
+          <tr style="background-color: var(--canvas);">
+            <th style="padding: 0.5rem 0.875rem; text-align: left; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); border-bottom: 1px solid var(--border);">Parameter</th>
+            <th style="padding: 0.5rem 0.875rem; text-align: left; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); border-bottom: 1px solid var(--border);">Value</th>
+            <th style="padding: 0.5rem 0.875rem; text-align: left; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); border-bottom: 1px solid var(--border);">How derived</th>
+          </tr>
+        </thead>
+        <tbody>
+          {[
+            ['Network address',   '172.16.0.0',   'IP AND mask — host bits zeroed'],
+            ['Subnet mask',       '255.255.240.0', '20 ones, 12 zeros'],
+            ['Broadcast address', '172.16.15.255', 'IP OR NOT(mask) — host bits all ones'],
+            ['First usable host', '172.16.0.1',   'Network address + 1'],
+            ['Last usable host',  '172.16.15.254', 'Broadcast − 1'],
+            ['Usable hosts',      '4,094',         '2¹² − 2'],
+            ['Wildcard mask',     '0.0.15.255',    'NOT(mask)'],
+          ].map(([param, value, how], i) => (
+            <tr style={{ backgroundColor: i % 2 === 1 ? 'var(--canvas)' : 'var(--surface)' }}>
+              <td style="padding: 0.45rem 0.875rem; color: var(--text-2); border-bottom: 1px solid var(--border-subtle);">{param}</td>
+              <td style="padding: 0.45rem 0.875rem; font-family: 'Fira Code', monospace; font-size: 0.875rem; color: var(--accent-text); border-bottom: 1px solid var(--border-subtle);">{value}</td>
+              <td style="padding: 0.45rem 0.875rem; color: var(--text-3); font-size: 0.8125rem; border-bottom: 1px solid var(--border-subtle);">{how}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size: 0.9375rem; color: var(--text-2); line-height: 1.7; margin-bottom: 1.25rem;">
+      This is a typical medium-sized subnet for a campus building or a server VLAN —
+      large enough to not run out of addresses, small enough to keep broadcast traffic
+      manageable. In a real addressing plan you would document each subnet by its network
+      address and prefix, not by its broadcast or host range.
     </p>
 
     <h2 style="font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 1.25rem; color: var(--text-1); letter-spacing: -0.02em; margin-bottom: 0.75rem; margin-top: 2rem;">
       Common subnet masks reference
     </h2>
-    <div style="overflow-x: auto;">
+    <div style="overflow-x: auto; margin-bottom: 1.25rem;">
       <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem; border: 1px solid var(--border);">
         <thead>
           <tr style="background-color: var(--canvas);">
@@ -127,13 +196,6 @@ const jsonLd = {
     </p>
 
     <h2 style="font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 1.25rem; color: var(--text-1); letter-spacing: -0.02em; margin-bottom: 0.75rem; margin-top: 2rem;">
-      Common subnetting mistakes
-    </h2>
-    <p style="font-size: 0.9375rem; color: var(--text-2); line-height: 1.7; margin-bottom: 1.25rem;">
-      The most frequent mistake is assigning a host address that coincides with the network or broadcast address. Every subnet has two reserved addresses: the first (all host bits zero) is the network address, and the last (all host bits one) is the broadcast. Assigning <code style="font-family: 'Fira Code', monospace; font-size: 0.875em; background: var(--surface-secondary); padding: 0.1em 0.35em; border-radius: 3px; color: var(--accent-text);">192.168.1.0</code> or <code style="font-family: 'Fira Code', monospace; font-size: 0.875em; background: var(--surface-secondary); padding: 0.1em 0.35em; border-radius: 3px; color: var(--accent-text);">192.168.1.255</code> to a host in a /24 is invalid and will cause unpredictable behavior. A second common error is overlapping subnets — allocating <code style="font-family: 'Fira Code', monospace; font-size: 0.875em; background: var(--surface-secondary); padding: 0.1em 0.35em; border-radius: 3px; color: var(--accent-text);">10.0.0.0/24</code> to one VLAN and <code style="font-family: 'Fira Code', monospace; font-size: 0.875em; background: var(--surface-secondary); padding: 0.1em 0.35em; border-radius: 3px; color: var(--accent-text);">10.0.0.128/25</code> to another, which overlap because /25 is contained within /24. Third: using a subnet mask that does not align to a power-of-two boundary (non-contiguous masks), which confuses routers and is rejected outright by modern IOS.
-    </p>
-
-    <h2 style="font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 1.25rem; color: var(--text-1); letter-spacing: -0.02em; margin-bottom: 0.75rem; margin-top: 2rem;">
       Subnetting in enterprise networks
     </h2>
     <p style="font-size: 0.9375rem; color: var(--text-2); line-height: 1.7; margin-bottom: 1.25rem;">
@@ -143,7 +205,7 @@ const jsonLd = {
     <h2 style="font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 1.25rem; color: var(--text-1); letter-spacing: -0.02em; margin-bottom: 0.75rem; margin-top: 2rem;">
       Production subnet reference — most-used sizes
     </h2>
-    <div style="overflow-x: auto;">
+    <div style="overflow-x: auto; margin-bottom: 1.25rem;">
       <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem; border: 1px solid var(--border);">
         <thead>
           <tr style="background-color: var(--canvas);">
@@ -175,6 +237,49 @@ const jsonLd = {
         </tbody>
       </table>
     </div>
+
+    <h2 style="font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 1.25rem; color: var(--text-1); letter-spacing: -0.02em; margin-bottom: 0.75rem; margin-top: 2rem;">
+      Common subnetting mistakes
+    </h2>
+    <p style="font-size: 0.9375rem; color: var(--text-2); line-height: 1.7; margin-bottom: 1.25rem;">
+      <strong style="color: var(--text-1);">Assigning the network or broadcast address to a host.</strong> The network address
+      (all host bits zero) and the broadcast address (all host bits one) are reserved and cannot be
+      configured on a router interface or end device. Cisco IOS will reject them outright;
+      other platforms may accept the configuration but produce unexpected behavior.
+    </p>
+    <p style="font-size: 0.9375rem; color: var(--text-2); line-height: 1.7; margin-bottom: 1.25rem;">
+      <strong style="color: var(--text-1);">Expecting four usable hosts from a /30.</strong> A /30 has 4 total
+      addresses (2² = 4), but two are reserved — network and broadcast — leaving exactly 2 usable hosts.
+      That is intentional: /30 subnets exist precisely for point-to-point WAN links where you need one
+      address per router interface and nothing else. If you need more than 2 hosts, use a /29 (6 usable).
+    </p>
+    <p style="font-size: 0.9375rem; color: var(--text-2); line-height: 1.7; margin-bottom: 1.25rem;">
+      <strong style="color: var(--text-1);">Confusing the subnet mask with the wildcard mask.</strong> The mask
+      <code style="font-family: 'Fira Code', monospace; font-size: 0.875em; background: var(--surface-secondary); padding: 0.1em 0.35em; border-radius: 3px; color: var(--accent-text);">255.255.255.0</code> as a Cisco ACL wildcard argument means "ignore the first three octets, match only
+      addresses where the fourth octet is zero" — the opposite of what you usually want.
+      Wildcard masks should be the inverse: <code style="font-family: 'Fira Code', monospace; font-size: 0.875em; background: var(--surface-secondary); padding: 0.1em 0.35em; border-radius: 3px; color: var(--accent-text);">0.0.0.255</code> for a /24.
+    </p>
+    <p style="font-size: 0.9375rem; color: var(--text-2); line-height: 1.7; margin-bottom: 1.25rem;">
+      <strong style="color: var(--text-1);">Overlapping subnets in an addressing plan.</strong> If you allocate
+      <code style="font-family: 'Fira Code', monospace; font-size: 0.875em; background: var(--surface-secondary); padding: 0.1em 0.35em; border-radius: 3px; color: var(--accent-text);">10.0.0.0/22</code> to one site and <code style="font-family: 'Fira Code', monospace; font-size: 0.875em; background: var(--surface-secondary); padding: 0.1em 0.35em; border-radius: 3px; color: var(--accent-text);">10.0.2.0/23</code> to another,
+      the second is entirely contained inside the first (10.0.2.0–10.0.3.255 falls within 10.0.0.0–10.0.3.255).
+      Routing will work unpredictably depending on which entry is more specific. Always verify that each
+      subnet's range — network address through broadcast — does not overlap with any other allocation.
+    </p>
+    <p style="font-size: 0.9375rem; color: var(--text-2); line-height: 1.7; margin-bottom: 1.25rem;">
+      <strong style="color: var(--text-1);">Non-contiguous subnet masks.</strong> A valid subnet mask is always a
+      run of consecutive 1-bits followed by consecutive 0-bits — for example
+      <code style="font-family: 'Fira Code', monospace; font-size: 0.875em; background: var(--surface-secondary); padding: 0.1em 0.35em; border-radius: 3px; color: var(--accent-text);">255.255.255.0</code>. A mask that does not align to a power-of-two boundary (1-bits interleaved
+      with 0-bits) confuses routers and is rejected outright by modern IOS. If your calculated mask is not
+      one of the standard contiguous values, the prefix length is wrong.
+    </p>
+    <p style="font-size: 0.9375rem; color: var(--text-2); line-height: 1.7; margin-bottom: 1.25rem;">
+      <strong style="color: var(--text-1);">The /31 special case.</strong> RFC 3021 allows /31 subnets on
+      point-to-point links. A /31 has only 2 addresses and no broadcast — both addresses are usable as
+      host addresses. Modern IOS versions support this with the
+      <code style="font-family: 'Fira Code', monospace; font-size: 0.875em; background: var(--surface-secondary); padding: 0.1em 0.35em; border-radius: 3px; color: var(--accent-text);">ip address x.x.x.x 255.255.255.254</code> command.
+      It saves one address per link compared to /30, which matters at scale.
+    </p>
 
   </article>
 </BaseLayout>

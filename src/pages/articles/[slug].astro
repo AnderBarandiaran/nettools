@@ -55,11 +55,6 @@ const pubDate = article.data.pubDate.toLocaleDateString('en-US', {
     </ol>
   </nav>
 
-  <!-- Ad leaderboard -->
-  <div style="display: flex; justify-content: center; padding: 1.5rem 1rem;">
-    <AdSlot slot="leaderboard" />
-  </div>
-
   <!-- Article -->
   <article class="max-w-[72ch] mx-auto px-4 pb-16">
 
@@ -104,19 +99,9 @@ const pubDate = article.data.pubDate.toLocaleDateString('en-US', {
       </p>
     </header>
 
-    <!-- Inline ad -->
-    <div style="display: flex; justify-content: center; margin-bottom: 2.5rem;">
-      <AdSlot slot="rectangle" />
-    </div>
-
     <!-- Prose content — reading typography -->
     <div class="prose-article">
       <Content />
-    </div>
-
-    <!-- Bottom ad -->
-    <div style="display: flex; justify-content: center; margin-top: 3rem;">
-      <AdSlot slot="rectangle" />
     </div>
 
     <!-- Back link -->

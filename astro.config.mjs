@@ -6,7 +6,7 @@ import mdx from '@astrojs/mdx';
 import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
-  site: 'https://nettools-531.pages.dev',
+  site: 'https://nettools.engineer',
   output: 'static',
   integrations: [
     mdx(),
