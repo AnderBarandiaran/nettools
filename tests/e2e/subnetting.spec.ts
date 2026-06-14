@@ -20,7 +20,7 @@ test.describe('Subnet Calculator', () => {
     await expect(page.getByText('192.168.1.254')).toBeVisible();
     await expect(page.getByText('254', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('255.255.255.0').first()).toBeVisible();
-    await expect(page.getByText('0.0.0.255')).toBeVisible();
+    await expect(page.getByText('0.0.0.255').first()).toBeVisible();
   });
 
   test('calculates 10.0.0.0/8 correctly', async ({ page }) => {
@@ -49,8 +49,8 @@ test.describe('Subnet Calculator', () => {
     await expect(page.getByText('172.16.0.0').first()).toBeVisible();
   });
 
-  test('AdSlot placeholders present with correct dimensions', async ({ page }) => {
+  test('no AdSlot placeholders present', async ({ page }) => {
     const adSlots = page.locator('[data-ad-slot]');
-    await expect(adSlots).toHaveCount(2);
+    await expect(adSlots).toHaveCount(0);
   });
 });
